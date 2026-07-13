@@ -1,0 +1,8 @@
+customer_id,region,amount,signup_date,is_active,is_high_value
+1,West,120.5,2024-01-03,True,True
+2,East,80.0,2024-01-04,True,False
+1,West,105.25,2024-01-03,True,True
+3,North,250.0,2024-02-02,False,True
+4,South,90.0,2024-02-10,True,False
+5,West,140.0,2024-03-01,True,True
+6,East,60.0,2024-03-15,False,False
