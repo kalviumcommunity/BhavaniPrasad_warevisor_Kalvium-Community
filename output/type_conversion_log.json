@@ -1,0 +1,28 @@
+{
+  "transaction_date": {
+    "from": "str",
+    "to": "datetime64[us]",
+    "status": "success",
+    "transformation": "string date parsed with explicit format",
+    "format": "%Y-%m-%d"
+  },
+  "signup_date": {
+    "from": "str",
+    "to": "datetime64[us]",
+    "status": "success",
+    "transformation": "string date parsed with explicit format",
+    "format": "%Y-%m-%d"
+  },
+  "amount": {
+    "from": "str",
+    "to": "float64",
+    "status": "success",
+    "transformation": "currency symbols stripped and converted to float"
+  },
+  "is_active": {
+    "from": "int64",
+    "to": "bool",
+    "status": "success",
+    "transformation": "0/1 values converted to boolean"
+  }
+}
