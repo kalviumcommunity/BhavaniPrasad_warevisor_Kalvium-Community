@@ -1,0 +1,7 @@
+column_name,data_type,description,business_meaning,example_value,related_kpi,notes
+customer_id,integer,Unique identifier for customer,Customer ID in CRM system,12456,Customer tracking,Primary key - never null
+customer_name,string,Customer display name,Name used for customer communications,Alice Smith,Customer experience,Used for manual review and reporting
+transaction_amount,float,Transaction amount in USD,Revenue per transaction,150.50,Monthly revenue,Amount paid by customer in dollars
+transaction_date,datetime,Date transaction occurred,When sale was completed,2025-01-15,Sales velocity,Stored as YYYY-MM-DD; timezone-neutral
+cust_segment,string,Customer classification,Business segment (B2B/B2C/SMB),SMB,Segment profitability,Updated monthly from CRM classification
+flag_churn,integer,Churn indicator (0/1),Whether customer left within 90 days,0,Churn rate prediction,Target variable for retention models
