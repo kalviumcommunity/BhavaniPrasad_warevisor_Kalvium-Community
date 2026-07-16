@@ -24,3 +24,27 @@ python scripts/deduplicate_data.py
 
 ### Verification
 The regression test at [tests/test_deduplicate_data.py](tests/test_deduplicate_data.py) confirms that exact duplicates are removed, near-duplicates are reduced to the best record, and the audit files are produced.
+
+## String Cleaning and Text Normalisation
+
+The project also includes a reusable string-cleaning pipeline for messy text fields.
+
+### What is included
+- A Python script at [scripts/string_cleaning_pipeline.py](scripts/string_cleaning_pipeline.py) that:
+  - strips whitespace from string columns
+  - normalizes casing to lowercase
+  - removes special characters with regex
+  - standardizes category labels using mapping dictionaries
+  - exposes a reusable helper, [scripts/string_cleaning_pipeline.py](scripts/string_cleaning_pipeline.py), for any text column
+
+### Generated artifacts
+- Cleaned dataset: [data/processed/cleaned_strings.csv](data/processed/cleaned_strings.csv)
+- Cleaning summary: [output/string_cleaning_summary.json](output/string_cleaning_summary.json)
+
+### Run it
+```bash
+python scripts/string_cleaning_pipeline.py
+```
+
+### Verification
+The regression test at [tests/test_string_cleaning_pipeline.py](tests/test_string_cleaning_pipeline.py) confirms that whitespace is stripped, casing is normalized, special characters are removed, and categories are standardized consistently.
