@@ -48,3 +48,28 @@ python scripts/string_cleaning_pipeline.py
 
 ### Verification
 The regression test at [tests/test_string_cleaning_pipeline.py](tests/test_string_cleaning_pipeline.py) confirms that whitespace is stripped, casing is normalized, special characters are removed, and categories are standardized consistently.
+
+## Merge Validation and Join Auditing
+
+The project also includes a merge-validation workflow for joining customer and order data safely and transparently.
+
+### What is included
+- A Python script at [scripts/merge_validation.py](scripts/merge_validation.py) that:
+  - performs explicit merges with a chosen join type
+  - validates row counts before and after the join
+  - detects unmatched keys on both sides of the merge
+  - writes unmatched-key files and a join report for auditability
+
+### Generated artifacts
+- Merged dataset: [data/processed/merged_customers_orders.csv](data/processed/merged_customers_orders.csv)
+- Unmatched customers: [output/unmatched_customers.csv](output/unmatched_customers.csv)
+- Unmatched orders: [output/unmatched_orders.csv](output/unmatched_orders.csv)
+- Join report: [output/join_validation_report.json](output/join_validation_report.json)
+
+### Run it
+```bash
+python scripts/merge_validation.py
+```
+
+### Verification
+The regression test at [tests/test_merge_validation.py](tests/test_merge_validation.py) confirms that left joins preserve customer rows, unmatched keys are detected, and join-type comparisons are reported correctly.
