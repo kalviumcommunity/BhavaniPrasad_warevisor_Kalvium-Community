@@ -73,3 +73,23 @@ python scripts/merge_validation.py
 
 ### Verification
 The regression test at [tests/test_merge_validation.py](tests/test_merge_validation.py) confirms that left joins preserve customer rows, unmatched keys are detected, and join-type comparisons are reported correctly.
+
+## Feature Engineering for Business Meaning
+
+The project now includes a reusable feature-engineering workflow for turning raw customer metrics into interpretable business signals.
+
+### What is included
+- A reusable module at [scripts/feature_engineering.py](scripts/feature_engineering.py) that:
+  - creates ratio features such as transactions per month, average spend per transaction, and lifetime value per month
+  - bins engagement into low/medium/high tiers with `pd.cut`
+  - creates quartile-based spend tiers with `pd.qcut`
+  - builds an RFM-style composite score from recency, frequency, and monetary components
+  - validates the engineered columns for sensible ranges and missingness
+
+### Run it
+```bash
+python scripts/feature_engineering.py
+```
+
+### Verification
+The regression test at [tests/test_feature_engineering.py](tests/test_feature_engineering.py) confirms that the engineered features are created and that the validation summaries are populated correctly.
