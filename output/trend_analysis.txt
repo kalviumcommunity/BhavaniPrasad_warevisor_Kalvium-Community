@@ -1,0 +1,17 @@
+TREND ANALYSIS
+
+Rolling Average Trend: DOWN
+Change over last 30 days: -84.3%
+Month-over-month growth: -78.5%
+
+Business Implications:
+- Declining momentum - investigate pricing, demand, and channel performance.
+- Revenue volatility: 59 (measure of noise)
+- Highest weekly revenue: 200
+- Highest monthly revenue: 350
+
+Growth Months:
+None
+
+Decline Months:
+2025-02
