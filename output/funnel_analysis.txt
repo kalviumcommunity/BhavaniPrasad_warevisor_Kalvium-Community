@@ -1,0 +1,45 @@
+FUNNEL ANALYSIS SUMMARY
+
+Stage counts:
+{'Sign Up': 10000, 'Email Entered': 8000, 'Password Created': 6000, 'Email Verified': 5000, 'Payment Added': 4000, 'First Purchase': 2000}
+
+Drop-off table:
+      from_stage         to_stage  users_before  users_after  users_lost completion_rate drop_rate  drop_rate_value  revenue_impact
+         Sign Up    Email Entered         10000         8000        2000           80.0%     20.0%            20.00          200000
+   Email Entered Password Created          8000         6000        2000           75.0%     25.0%            25.00          200000
+Password Created   Email Verified          6000         5000        1000           83.3%     16.7%            16.67          100000
+  Email Verified    Payment Added          5000         4000        1000           80.0%     20.0%            20.00          100000
+   Payment Added   First Purchase          4000         2000        2000           50.0%     50.0%            50.00          200000
+
+Business impact:
+      from_stage         to_stage  users_before  users_after  users_lost completion_rate drop_rate  drop_rate_value  revenue_impact priority
+   Payment Added   First Purchase          4000         2000        2000           50.0%     50.0%            50.00          200000     HIGH
+   Email Entered Password Created          8000         6000        2000           75.0%     25.0%            25.00          200000     HIGH
+         Sign Up    Email Entered         10000         8000        2000           80.0%     20.0%            20.00          200000     HIGH
+  Email Verified    Payment Added          5000         4000        1000           80.0%     20.0%            20.00          100000     HIGH
+Password Created   Email Verified          6000         5000        1000           83.3%     16.7%            16.67          100000     HIGH
+
+FUNNEL OPTIMIZATION PRIORITY:
+
+CRITICAL BOTTLENECK:
+Stage: Payment Added -> First Purchase
+Users Lost: 2,000
+Drop Rate: 50.0%
+Revenue Impact: $200,000
+
+ROOT CAUSE INVESTIGATION NEEDED:
+- Is step unclear? (Poor UX)
+- Is step too complex? (Too many fields)
+- Is step optional? (Should be required)
+- Is step timing wrong? (Too early/late in funnel)
+
+RECOMMENDED ACTION:
+1. A/B test simplified version of step
+2. Monitor drop rate before/after
+3. Estimate revenue recovery
+4. Roll out to 100% if improvement > 5%
+
+EXPECTED IMPACT:
+If we improve Payment Added -> First Purchase completion by 10%:
+Additional conversions: 200
+Additional revenue: $20,000
