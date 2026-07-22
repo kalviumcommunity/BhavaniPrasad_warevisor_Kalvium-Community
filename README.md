@@ -93,3 +93,23 @@ python scripts/feature_engineering.py
 
 ### Verification
 The regression test at [tests/test_feature_engineering.py](tests/test_feature_engineering.py) confirms that the engineered features are created and that the validation summaries are populated correctly.
+
+## Correlation & Relationship Analysis
+
+The project includes a correlation analysis workflow for churn prediction and feature selection.
+
+### What is included
+- A module at [scripts/correlation_analysis.py](scripts/correlation_analysis.py) that:
+  - generates synthetic churn data with a latent confounder to illustrate correlation vs causation
+  - computes Pearson and Spearman correlations for all numeric features
+  - visualizes relationships with a saved heatmap at [output/correlation_heatmap.png](output/correlation_heatmap.png)
+  - identifies strongly correlated feature pairs and highlights redundant predictors
+  - shows how strong support ticket / churn correlation can be a symptom of customer pain rather than a root cause
+
+### Run it
+```bash
+python scripts/correlation_analysis.py
+```
+
+### Verification
+The regression test at [tests/test_correlation_analysis.py](tests/test_correlation_analysis.py) confirms correlation calculations, heatmap generation, strong pair detection, and feature selection behavior.
