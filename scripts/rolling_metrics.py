@@ -14,10 +14,198 @@ DEFAULT_INPUT_FILE = REPO_ROOT / "data" / "raw" / "sample.csv"
 DEFAULT_OUTPUT_DIR = REPO_ROOT / "output"
 DEFAULT_PLOT_FILE = DEFAULT_OUTPUT_DIR / "rolling_avg.png"
 DEFAULT_REPORT_FILE = DEFAULT_OUTPUT_DIR / "trend_analysis.txt"
+DEFAULT_ANOMALY_LOG_FILE = DEFAULT_OUTPUT_DIR / "anomalies_log.csv"
+DEFAULT_ANOMALY_PLOT_FILE = DEFAULT_OUTPUT_DIR / "anomaly_detection.png"
 
 DATE_CANDIDATES = ("date", "transaction_date", "order_date", "timestamp")
 VALUE_CANDIDATES = ("revenue", "transaction_amount", "amount", "sales")
 COUNT_CANDIDATES = ("orders", "order_id", "customer_id")
+
+
+def check_thresholds(metrics: dict[str, float], rules: dict[str, dict[str, float]]) -> list[dict[str, object]]:
+    """Return threshold alerts for metrics that fall outside business limits."""
+    alerts: list[dict[str, object]] = []
+    for metric_name, rule in rules.items():
+        if metric_name not in metrics:
+            continue
+
+        value = metrics[metric_name]
+        lower_bound = rule["min"]
+        upper_bound = rule["max"]
+
+        if value < lower_bound:
+            alerts.append(
+                {
+                    "metric": metric_name,
+                    "value": value,
+                    "threshold": lower_bound,
+                    "direction": "BELOW_MIN",
+                    "severity": "HIGH",
+                }
+            )
+        elif value > upper_bound:
+            alerts.append(
+                {
+                    "metric": metric_name,
+                    "value": value,
+                    "threshold": upper_bound,
+                    "direction": "ABOVE_MAX",
+                    "severity": "MEDIUM",
+                }
+            )
+
+    return alerts
+
+
+def detect_anomalies_zscore(series: pd.Series, threshold: float = 2.0) -> tuple[pd.Series, pd.Series]:
+    """Return anomalous values and their absolute z-scores for a numeric series."""
+    numeric_series = pd.to_numeric(series, errors="coerce")
+    if numeric_series.dropna().empty:
+        return numeric_series.iloc[0:0], pd.Series(0.0, index=series.index, dtype=float)
+
+    mean = numeric_series.mean()
+    std = numeric_series.std()
+    if pd.isna(std) or std == 0:
+        return numeric_series.iloc[0:0], pd.Series(0.0, index=series.index, dtype=float)
+
+    z_scores = ((numeric_series - mean) / std).abs().fillna(0.0)
+    anomalies = numeric_series[z_scores > threshold].dropna()
+    return anomalies, z_scores
+
+
+def classify_severity(value: float, mean: float, std: float) -> str:
+    """Classify anomaly severity from the absolute z-score."""
+    if pd.isna(std) or std == 0:
+        return "LOW"
+
+    z_score = abs((value - mean) / std)
+    if z_score > 3:
+        return "CRITICAL"
+    if z_score > 2:
+        return "HIGH"
+    if z_score > 1.5:
+        return "MEDIUM"
+    return "LOW"
+
+
+def build_anomaly_monitoring(
+    metrics: dict[str, object],
+    threshold: float = 2.0,
+    lookback_days: int = 30,
+) -> dict[str, object]:
+    """Prepare anomaly alerts, severity labels, and audit rows for the recent window."""
+    daily = metrics["daily"].tail(lookback_days)
+    if daily.empty:
+        raise ValueError("No daily values available for anomaly monitoring.")
+
+    mean = float(daily.mean())
+    std = float(daily.std()) if len(daily) > 1 else 0.0
+    anomalies, z_scores = detect_anomalies_zscore(daily, threshold=threshold)
+
+    expected_low = mean - (2 * std)
+    expected_high = mean + (2 * std)
+    anomaly_log_rows: list[dict[str, object]] = []
+
+    for date, value in anomalies.items():
+        anomaly_log_rows.append(
+            {
+                "timestamp": pd.Timestamp.now(),
+                "anomaly_date": date,
+                "metric": "daily_revenue",
+                "value": float(value),
+                "expected_range": f"{expected_low:.0f}-{expected_high:.0f}",
+                "z_score": float(z_scores[date]),
+                "severity": classify_severity(float(value), mean, std),
+                "status": "OPEN",
+            }
+        )
+
+    anomaly_log = pd.DataFrame(
+        anomaly_log_rows,
+        columns=[
+            "timestamp",
+            "anomaly_date",
+            "metric",
+            "value",
+            "expected_range",
+            "z_score",
+            "severity",
+            "status",
+        ],
+    )
+
+    high_severity = anomaly_log[anomaly_log["severity"].isin(["CRITICAL", "HIGH"])].copy()
+
+    return {
+        "daily": daily,
+        "mean": mean,
+        "std": std,
+        "threshold": threshold,
+        "anomalies": anomalies,
+        "z_scores": z_scores,
+        "anomaly_log": anomaly_log,
+        "high_severity_anomalies": high_severity,
+        "expected_low": expected_low,
+        "expected_high": expected_high,
+    }
+
+
+def save_anomaly_log(anomaly_log: pd.DataFrame, output_path: str | Path = DEFAULT_ANOMALY_LOG_FILE) -> Path:
+    """Persist the anomaly audit trail to CSV."""
+    output = Path(output_path)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    anomaly_log.to_csv(output, index=False)
+    return output
+
+
+def save_anomaly_plot(
+    metrics: dict[str, object],
+    anomaly_summary: dict[str, object],
+    output_path: str | Path = DEFAULT_ANOMALY_PLOT_FILE,
+) -> Path:
+    """Save a time-series plot with anomalies highlighted."""
+    output = Path(output_path)
+    output.parent.mkdir(parents=True, exist_ok=True)
+
+    daily = anomaly_summary["daily"]
+    rolling_avg = daily.rolling(window=7, min_periods=1).mean()
+    mean = anomaly_summary["mean"]
+    std = anomaly_summary["std"]
+    anomalies = anomaly_summary["anomalies"]
+
+    fig, ax = plt.subplots(figsize=(14, 6))
+    ax.plot(daily.index, daily.values, marker="o", label="Daily Revenue", linewidth=2)
+    ax.plot(rolling_avg.index, rolling_avg.values, label="7-day MA", color="green", linewidth=2)
+    ax.fill_between(
+        daily.index,
+        mean - (2 * std),
+        mean + (2 * std),
+        alpha=0.2,
+        color="blue",
+        label="Expected Range ±2σ",
+    )
+
+    for date, value in anomalies.items():
+        ax.scatter(date, value, color="red", s=200, marker="X", zorder=5)
+        ax.annotate(
+            "ANOMALY",
+            (date, value),
+            xytext=(0, 10),
+            textcoords="offset points",
+            ha="center",
+            fontweight="bold",
+        )
+
+    ax.set_xlabel("Date")
+    ax.set_ylabel("Revenue ($)")
+    ax.set_title("Daily Revenue with Anomalies Flagged")
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    plt.savefig(output, dpi=150)
+    plt.close(fig)
+    return output
 
 
 def load_time_series_data(filepath: str | Path) -> pd.DataFrame:
@@ -182,8 +370,11 @@ def run_rolling_metrics_pipeline(
     """Run the full rolling-metrics workflow and write assignment deliverables."""
     df = load_time_series_data(filepath)
     metrics = build_time_series_metrics(df)
+    anomaly_summary = build_anomaly_monitoring(metrics)
     plot_file = save_rolling_plot(metrics, plot_path)
     report_file = write_trend_report(metrics["report"], report_path)
+    anomaly_log_file = save_anomaly_log(anomaly_summary["anomaly_log"])
+    anomaly_plot_file = save_anomaly_plot(metrics, anomaly_summary)
 
     DEFAULT_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -194,6 +385,9 @@ def run_rolling_metrics_pipeline(
     print("Month-over-month change:\n", metrics["mom_change"])
     print(f"Rolling plot saved to {plot_file}")
     print(f"Trend report saved to {report_file}")
+    print(f"Anomaly log saved to {anomaly_log_file}")
+    print(f"Anomaly plot saved to {anomaly_plot_file}")
+    print(f"Detected {len(anomaly_summary['anomaly_log'])} anomalies in the last {anomaly_summary['daily'].shape[0]} days")
 
     return metrics
 
