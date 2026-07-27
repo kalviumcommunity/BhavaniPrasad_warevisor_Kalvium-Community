@@ -113,3 +113,31 @@ python scripts/correlation_analysis.py
 
 ### Verification
 The regression test at [tests/test_correlation_analysis.py](tests/test_correlation_analysis.py) confirms correlation calculations, heatmap generation, strong pair detection, and feature selection behavior.
+
+## SQL Joins & Multi-Table Analysis
+
+The project includes a multi-table relational join and validation workflow for auditability across relational schemas.
+
+### What is included
+- **Database setup script**: [scripts/setup_joins_db.py](scripts/setup_joins_db.py) populates SQLite database `data/joins_analysis.db` with 1,000 customers, 5,000 orders, 8,000 order items, and 500 products (including inactive customers and orphaned orders).
+- **SQL Query Suite**:
+  - [sql/01_left_join_validation.sql](sql/01_left_join_validation.sql): LEFT JOIN with customer order aggregates.
+  - [sql/02_detect_unmatched_keys.sql](sql/02_detect_unmatched_keys.sql): Unmatched key detection for inactive customers and orphaned orders.
+  - [sql/03_compare_join_types.sql](sql/03_compare_join_types.sql): INNER, LEFT, and FULL OUTER join side-by-side comparison.
+  - [sql/04_multi_table_join.sql](sql/04_multi_table_join.sql): 4-table join (`customers`, `orders`, `order_items`, `products`).
+  - [sql/05_join_documentation.sql](sql/05_join_documentation.sql): Formal join strategy documentation.
+- **Join Guide**: Detailed tutorial and documentation at [sql/SQL_JOINS_GUIDE.md](sql/SQL_JOINS_GUIDE.md).
+- **Python Automation**: [sql/sql_joins_demo.py](sql/sql_joins_demo.py) executes all 5 tasks with Pandas and SQLite, evaluating join multiplicity and relationship invariants.
+
+### Run it
+```bash
+python scripts/setup_joins_db.py
+python sql/sql_joins_demo.py
+```
+
+### Verification
+The unit test suite at [tests/test_sql_joins.py](tests/test_sql_joins.py) validates join row counts, unmatched key detection, join type assertions (`INNER` <= `LEFT` <= `FULL`), line-item revenue lineage, and strategy documentation.
+```bash
+python -m pytest tests/test_sql_joins.py
+```
+
