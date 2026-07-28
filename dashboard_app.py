@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 import os
 import numpy as np
 from datetime import datetime, timedelta
@@ -11,7 +12,27 @@ os.makedirs('output', exist_ok=True)
 st.set_page_config(layout='wide', page_title='Business Performance Dashboard')
 st.title('Business Performance Dashboard')
 
-# Level 1: KPI Summary Cards
+# --- DATA INTEGRATION ---
+# Level 2 (Trends) Data
+months = pd.date_range('2024-01-01', periods=12, freq='ME')
+trend_df = pd.DataFrame({
+    'date': months,
+    'revenue': [4.2, 4.5, 4.8, 4.6, 5.0, 5.1, 4.9, 4.7, 5.2, 5.4, 5.5, 5.2],
+    'active_customers': [2100, 2150, 2200, 2250, 2300, 2320, 2380, 2410, 2450, 2480, 2490, 2500],
+    'churned_customers': [50, 45, 60, 55, 40, 42, 38, 35, 30, 25, 28, 20],
+    'aov': [130, 132, 135, 134, 138, 140, 142, 141, 143, 144, 145, 145]
+})
+
+# Level 3 (Segments) Data
+segment_df = pd.DataFrame({
+    'segment': ['Enterprise', 'Mid-Market', 'SMB', 'Starter'],
+    'revenue': [2.1, 1.5, 1.0, 0.6],
+    'profit': [0.8, 0.5, 0.2, -0.1],
+    'customer_count': [150, 450, 1100, 800],
+    'color': ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728']
+})
+
+# --- LEVEL 1: KPI Summary Cards ---
 col1, col2, col3, col4, col5 = st.columns(5)
 
 with col1:
@@ -27,117 +48,153 @@ with col5:
 
 st.divider()
 
-# Level 2: Trends
+# --- LEVEL 2: Trends ---
 st.subheader("Performance Trends")
 col_trend1, col_trend2, col_trend3 = st.columns(3)
 
-# Chart 1: Revenue Trend (Line Chart)
-months = pd.date_range('2024-01-01', periods=12, freq='ME')
-revenue = [4.2, 4.5, 4.8, 4.6, 5.0, 5.1, 4.9, 4.7, 5.2, 5.4, 5.5, 5.2]
-
-fig1, ax1 = plt.subplots(figsize=(8, 4))
-ax1.plot(months, revenue, marker='o', linewidth=2, color='#1f77b4')
-ax1.set_title('Monthly Revenue Trend (2024)', fontsize=12, fontweight='bold')
-ax1.set_xlabel('Month', fontsize=10)
-ax1.set_ylabel('Revenue ($M)', fontsize=10)
-ax1.grid(True, alpha=0.3)
-ax1.axhline(y=5.0, color='#2ca02c', linestyle='--', linewidth=1.5, label='Target: $5M')
-ax1.legend()
-plt.tight_layout()
-plt.savefig('output/revenue_trend.png', dpi=300)
-
+# Chart 1: Revenue Trend (Plotly Line Chart)
+fig1 = go.Figure()
+fig1.add_trace(go.Scatter(
+    x=trend_df['date'],
+    y=trend_df['revenue'],
+    mode='lines+markers',
+    name='Revenue',
+    line=dict(color='#1f77b4', width=2),
+    marker=dict(size=8),
+    hovertemplate='<b>%{x|%b %Y}</b><br>' +
+                  'Revenue: $%{y:.2f}M<br>' +
+                  '<extra></extra>'
+))
+fig1.add_hline(y=5.0, line_dash="dash", line_color="#2ca02c", annotation_text="Target: $5M")
+fig1.update_layout(
+    title='Monthly Revenue Trend (2024)',
+    xaxis_title='Month',
+    yaxis_title='Revenue ($M)',
+    hovermode='x unified',
+    dragmode='zoom',
+    height=400,
+    margin=dict(l=0, r=0, t=40, b=0)
+)
 with col_trend1:
-    st.pyplot(fig1)
+    st.plotly_chart(fig1, use_container_width=True)
 
 # Chart 2: Customer Metrics (Dual Line Chart)
-active_customers = [2100, 2150, 2200, 2250, 2300, 2320, 2380, 2410, 2450, 2480, 2490, 2500]
-churned_customers = [50, 45, 60, 55, 40, 42, 38, 35, 30, 25, 28, 20]
+fig2 = make_subplots(specs=[[{"secondary_y": True}]])
+fig2.add_trace(go.Scatter(
+    x=trend_df['date'], y=trend_df['active_customers'],
+    mode='lines+markers', name='Active Customers',
+    line=dict(color='#1f77b4', width=2), marker=dict(symbol='square', size=8),
+    hovertemplate='<b>%{x|%b %Y}</b><br>Active: %{y:,}<extra></extra>'
+), secondary_y=False)
 
-fig2, ax2 = plt.subplots(figsize=(8, 4))
-ax2.plot(months, active_customers, marker='s', linewidth=2, color='#1f77b4', label='Active Customers')
-ax2.set_title('Customer Growth vs Churn', fontsize=12, fontweight='bold')
-ax2.set_xlabel('Month', fontsize=10)
-ax2.set_ylabel('Active Customers', color='#1f77b4', fontsize=10)
-ax2.tick_params(axis='y', labelcolor='#1f77b4')
-ax2.grid(True, alpha=0.3)
+fig2.add_trace(go.Scatter(
+    x=trend_df['date'], y=trend_df['churned_customers'],
+    mode='lines+markers', name='Churned Customers',
+    line=dict(color='#d62728', width=2), marker=dict(symbol='x', size=8),
+    hovertemplate='<b>%{x|%b %Y}</b><br>Churned: %{y:,}<extra></extra>'
+), secondary_y=True)
 
-ax2_twin = ax2.twinx()
-ax2_twin.plot(months, churned_customers, marker='x', linewidth=2, color='#d62728', label='Churned Customers')
-ax2_twin.set_ylabel('Churned Customers', color='#d62728', fontsize=10)
-ax2_twin.tick_params(axis='y', labelcolor='#d62728')
-
-# Reference line for acceptable churn limit
-ax2_twin.axhline(y=40, color='#ff7f0e', linestyle=':', linewidth=1.5, label='Churn Alert Limit')
-ax2_twin.legend(loc='upper right')
-
-plt.tight_layout()
-plt.savefig('output/customer_metrics.png', dpi=300)
-
+fig2.add_hline(y=40, line_dash="dot", line_color="#ff7f0e", annotation_text="Alert Limit", secondary_y=True)
+fig2.update_layout(
+    title='Customer Growth vs Churn',
+    xaxis_title='Month',
+    hovermode='x unified',
+    dragmode='zoom',
+    height=400,
+    margin=dict(l=0, r=0, t=40, b=0),
+    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+)
+fig2.update_yaxes(title_text="Active Customers", color='#1f77b4', secondary_y=False)
+fig2.update_yaxes(title_text="Churned Customers", color='#d62728', secondary_y=True)
 with col_trend2:
-    st.pyplot(fig2)
+    st.plotly_chart(fig2, use_container_width=True)
 
 # Chart 3: Avg Order Value Trend
-aov = [130, 132, 135, 134, 138, 140, 142, 141, 143, 144, 145, 145]
-fig3, ax3 = plt.subplots(figsize=(8, 4))
-ax3.plot(months, aov, marker='^', linewidth=2, color='#ff7f0e')
-ax3.set_title('Average Order Value (AOV)', fontsize=12, fontweight='bold')
-ax3.set_xlabel('Month', fontsize=10)
-ax3.set_ylabel('AOV ($)', fontsize=10)
-ax3.grid(True, alpha=0.3)
-ax3.axhline(y=140, color='#2ca02c', linestyle='--', linewidth=1.5, label='AOV Target: $140')
-ax3.legend()
-plt.tight_layout()
-plt.savefig('output/aov_trend.png', dpi=300)
-
+fig3 = go.Figure()
+fig3.add_trace(go.Scatter(
+    x=trend_df['date'],
+    y=trend_df['aov'],
+    mode='lines+markers',
+    name='AOV',
+    line=dict(color='#ff7f0e', width=2),
+    marker=dict(symbol='triangle-up', size=10),
+    hovertemplate='<b>%{x|%b %Y}</b><br>' +
+                  'AOV: $%{y:.2f}<br>' +
+                  '<extra></extra>'
+))
+fig3.add_hline(y=140, line_dash="dash", line_color="#2ca02c", annotation_text="Target: $140")
+fig3.update_layout(
+    title='Average Order Value (AOV)',
+    xaxis_title='Month',
+    yaxis_title='AOV ($)',
+    hovermode='x unified',
+    dragmode='zoom',
+    height=400,
+    margin=dict(l=0, r=0, t=40, b=0)
+)
 with col_trend3:
-    st.pyplot(fig3)
+    st.plotly_chart(fig3, use_container_width=True)
 
 st.divider()
 
-# Level 3: Segments
+# --- LEVEL 3: Segments ---
 st.subheader("Segment Analysis")
-col_seg1, col_seg2 = st.columns(2)
 
-# Chart: Revenue by Segment (Bar Chart)
-segments = ['Enterprise', 'Mid-Market', 'SMB', 'Starter']
-segment_revenue = [2.1, 1.5, 1.0, 0.6]
-segment_colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728']
+# Dynamic Dropdown Chart for Segments
+fig4 = go.Figure()
 
-fig4, ax4 = plt.subplots(figsize=(8, 4))
-bars = ax4.barh(segments, segment_revenue, color=segment_colors)
-ax4.set_xlabel('Revenue ($M)', fontsize=10)
-ax4.set_title('Revenue by Customer Segment', fontsize=12, fontweight='bold')
+# Add Traces
+fig4.add_trace(go.Bar(
+    x=segment_df['segment'], y=segment_df['revenue'], name='Revenue ($M)',
+    marker_color=segment_df['color'], visible=True,
+    text=segment_df['revenue'].apply(lambda x: f"${x}M"), textposition='auto',
+    hovertemplate='<b>%{x}</b><br>Revenue: $%{y}M<extra></extra>'
+))
+fig4.add_trace(go.Bar(
+    x=segment_df['segment'], y=segment_df['profit'], name='Profit ($M)',
+    marker_color=segment_df['color'], visible=False,
+    text=segment_df['profit'].apply(lambda x: f"${x}M"), textposition='auto',
+    hovertemplate='<b>%{x}</b><br>Profit: $%{y}M<extra></extra>'
+))
+fig4.add_trace(go.Bar(
+    x=segment_df['segment'], y=segment_df['customer_count'], name='Customer Count',
+    marker_color=segment_df['color'], visible=False,
+    text=segment_df['customer_count'].apply(lambda x: f"{x:,}"), textposition='auto',
+    hovertemplate='<b>%{x}</b><br>Customers: %{y:,}<extra></extra>'
+))
 
-for bar, val in zip(bars, segment_revenue):
-    ax4.text(bar.get_width() + 0.05, bar.get_y() + bar.get_height()/2,
-            f'${val}M', va='center', fontsize=9)
+# Create dropdown menu
+fig4.update_layout(
+    updatemenus=[dict(
+        active=0,
+        x=0.0,
+        xanchor='left',
+        y=1.15,
+        yanchor='top',
+        buttons=[
+            dict(label='Revenue', method='update',
+                 args=[{'visible': [True, False, False]},
+                       {'title': 'Revenue by Segment', 'yaxis.title.text': 'Revenue ($M)'}]),
+            dict(label='Profit', method='update',
+                 args=[{'visible': [False, True, False]},
+                       {'title': 'Profit by Segment', 'yaxis.title.text': 'Profit ($M)'}]),
+            dict(label='Customer Count', method='update',
+                 args=[{'visible': [False, False, True]},
+                       {'title': 'Customer Count by Segment', 'yaxis.title.text': 'Number of Customers'}])
+        ]
+    )],
+    title='Segment Performance',
+    xaxis_title='Segment',
+    yaxis_title='Revenue ($M)',
+    dragmode='zoom',
+    height=500
+)
 
-plt.tight_layout()
-plt.savefig('output/revenue_by_segment.png', dpi=300)
-
-with col_seg1:
-    st.pyplot(fig4)
-
-# Chart: Customer Count by Segment
-segment_customers = [150, 450, 1100, 800]
-fig5, ax5 = plt.subplots(figsize=(8, 4))
-bars2 = ax5.barh(segments, segment_customers, color=segment_colors)
-ax5.set_xlabel('Number of Customers', fontsize=10)
-ax5.set_title('Customer Base by Segment', fontsize=12, fontweight='bold')
-
-for bar, val in zip(bars2, segment_customers):
-    ax5.text(bar.get_width() + 10, bar.get_y() + bar.get_height()/2,
-            f'{val}', va='center', fontsize=9)
-
-plt.tight_layout()
-plt.savefig('output/customers_by_segment.png', dpi=300)
-
-with col_seg2:
-    st.pyplot(fig5)
+st.plotly_chart(fig4, use_container_width=True)
 
 st.divider()
 
-# Level 4: Progressive Disclosure (Detail)
+# --- LEVEL 4: Progressive Disclosure (Detail) ---
 st.subheader('Detailed Data Explorer')
 
 # Mock DataFrame for detail view
@@ -145,7 +202,7 @@ np.random.seed(42)
 num_records = 500
 mock_data = {
     'customer_id': [f'CUST-{i:04d}' for i in range(1, num_records + 1)],
-    'segment': np.random.choice(segments, num_records, p=[0.06, 0.18, 0.44, 0.32]),
+    'segment': np.random.choice(segment_df['segment'], num_records, p=[0.06, 0.18, 0.44, 0.32]),
     'revenue': np.random.uniform(500, 15000, num_records).round(2),
     'last_activity': [datetime.today().date() - timedelta(days=int(d)) for d in np.random.randint(0, 60, num_records)],
     'churn_risk': np.random.choice(['Low', 'Medium', 'High'], num_records, p=[0.7, 0.2, 0.1])
@@ -154,7 +211,7 @@ df = pd.DataFrame(mock_data)
 
 # Sidebar filters for drill-down
 st.sidebar.header('Filters')
-selected_segment = st.sidebar.selectbox('Customer Segment', ['All'] + segments)
+selected_segment = st.sidebar.selectbox('Customer Segment', ['All'] + list(segment_df['segment']))
 
 # Date range default: last 30 days
 start_date = df['last_activity'].min()
