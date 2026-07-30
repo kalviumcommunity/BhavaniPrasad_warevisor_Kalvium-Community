@@ -46,6 +46,9 @@ def generate_synthetic_churn_data(
     # We clip support tickets to be positive integers
     support_tickets = np.round(np.clip(4 * p + np.random.normal(0, 0.1, num_records) + 5, 0, None))
     
+    # Generate response_time_hours heavily correlated with pain/churn
+    response_time_hours = np.clip(15 * p + 10 + np.random.normal(0, 2, num_records), 0.5, 48.0)
+    
     # Churn is a binary variable based on the pain variable
     churn = (p + np.random.normal(0, 0.20, num_records) > 0.1).astype(int)
 
@@ -54,6 +57,7 @@ def generate_synthetic_churn_data(
         "engagement": engagement,
         "transactions_per_month": transactions_per_month,
         "support_tickets": support_tickets,
+        "response_time_hours": response_time_hours,
         "churn": churn,
     })
 
@@ -150,7 +154,7 @@ def get_business_interpretation() -> dict:
 
 def perform_feature_selection(df: pd.DataFrame) -> pd.DataFrame:
     """Task 5: Drop redundant highly-correlated features."""
-    df_features = df[["engagement", "transactions_per_month", "support_tickets", "churn"]]
+    df_features = df[["engagement", "transactions_per_month", "support_tickets", "response_time_hours", "churn"]]
 
     # transactions_per_month and engagement are r=0.92 (correlated)
     # Drop redundant, keep more interpretable feature: transactions_per_month
@@ -163,14 +167,65 @@ def perform_feature_selection(df: pd.DataFrame) -> pd.DataFrame:
     return selected_corr
 
 
+def generate_response_time_charts(df: pd.DataFrame) -> None:
+    """Generate charts for Response Time vs Churn to support the executive summary."""
+    output_dir = Path("output")
+    output_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Chart 1: Scatter plot (using binned average churn rate for clarity)
+    # Group response time into deciles or bins to calculate churn rate
+    df['response_time_bin'] = pd.qcut(df['response_time_hours'], q=20, duplicates='drop')
+    scatter_data = df.groupby('response_time_bin', observed=False).agg(
+        avg_response_time=('response_time_hours', 'mean'),
+        churn_rate=('churn', 'mean')
+    ).reset_index()
+
+    fig, ax = plt.subplots(figsize=(8, 5))
+    sns.regplot(data=scatter_data, x='avg_response_time', y='churn_rate', ax=ax, scatter_kws={'alpha': 0.7})
+    ax.set_title("Response Time vs Churn Rate")
+    ax.set_xlabel("Average Response Time (Hours)")
+    ax.set_ylabel("Churn Rate")
+    plt.tight_layout()
+    plt.savefig(output_dir / "response_time_scatter.png")
+    plt.close(fig)
+
+    # Chart 2: Churn rate by response time bucket
+    bins = [0, 2, 4, 24, np.inf]
+    labels = ['<2 hours', '2-4 hours', '4-24 hours', '>24 hours']
+    df['response_bucket'] = pd.cut(df['response_time_hours'], bins=bins, labels=labels)
+    
+    bar_data = df.groupby('response_bucket', observed=False)['churn'].mean().reset_index()
+    bar_data['churn'] = bar_data['churn'] * 100 # Convert to percentage
+
+    fig, ax = plt.subplots(figsize=(8, 5))
+    sns.barplot(data=bar_data, x='response_bucket', y='churn', ax=ax, palette='Blues_d')
+    ax.set_title("Churn Rate by Response Time Bucket")
+    ax.set_xlabel("Response Time")
+    ax.set_ylabel("Churn Rate (%)")
+    for container in ax.containers:
+        ax.bar_label(container, fmt='%.1f%%')
+    plt.tight_layout()
+    plt.savefig(output_dir / "response_time_bar.png")
+    plt.close(fig)
+
+    print("--- Task 6: Response Time Charts Generated ---")
+    print(f"Charts saved to {output_dir}")
+    print()
+
+
 def run_pipeline() -> None:
     """Run the complete Correlation & Relationship Analysis pipeline."""
+    # Force regenerate to ensure response_time_hours is added
+    if DEFAULT_CHURN_DATA_FILE.exists():
+        DEFAULT_CHURN_DATA_FILE.unlink()
+        
     df = load_data()
     pearson_corr, _, _ = compute_correlations(df)
     save_heatmap(pearson_corr)
     identify_strong_pairs(pearson_corr)
     get_business_interpretation()
     perform_feature_selection(df)
+    generate_response_time_charts(df)
 
 
 if __name__ == "__main__":
