@@ -5,6 +5,7 @@ from plotly.subplots import make_subplots
 import os
 import numpy as np
 from datetime import datetime, timedelta
+from export_utils import export_analysis
 
 # Ensure output directory exists
 os.makedirs('output', exist_ok=True)
@@ -233,10 +234,47 @@ st.write(f'Showing {len(filtered_df):,} records')
 st.dataframe(filtered_df[['customer_id', 'segment', 'revenue', 'last_activity', 'churn_risk']], use_container_width=True)
 
 # Export option
-csv = filtered_df.to_csv(index=False)
-st.download_button(
-    label='Download CSV',
-    data=csv,
-    file_name='filtered_data.csv',
-    mime='text/csv'
-)
+st.sidebar.header('Export')
+
+if st.sidebar.button('📥 Export Analysis'):
+    summary = "## Analysis Report\nKey findings..."
+    charts = {'Revenue Trend': fig, 'Churn Drivers': fig3, 'Segment Performance': fig4}
+    
+    # Export
+    report_dir = export_analysis(filtered_df, summary, charts, 'output')
+    
+    # Provide download links
+    st.sidebar.success(f'✓ Analysis exported to: {report_dir}')
+    
+    # CSV download
+    csv_bytes = filtered_df.to_csv(index=False).encode()
+    st.sidebar.download_button(
+        label='📊 Download Data (CSV)',
+        data=csv_bytes,
+        file_name='analysis_data.csv',
+        mime='text/csv'
+    )
+    
+    # HTML download
+    with open(f'{report_dir}/interactive_report.html', 'r', encoding='utf-8') as f:
+        html_bytes = f.read()
+    st.sidebar.download_button(
+        label='🌐 Download Report (HTML)',
+        data=html_bytes,
+        file_name='analysis_report.html',
+        mime='text/html'
+    )
+    
+    # PDF download
+    try:
+        with open(f'{report_dir}/summary_report.pdf', 'rb') as f:
+            pdf_bytes = f.read()
+        st.sidebar.download_button(
+            label='📄 Download Report (PDF)',
+            data=pdf_bytes,
+            file_name='summary_report.pdf',
+            mime='application/pdf'
+        )
+    except FileNotFoundError:
+        pass
+
