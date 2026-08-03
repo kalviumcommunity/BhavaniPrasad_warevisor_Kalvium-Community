@@ -12,7 +12,7 @@ import pandas as pd
 NUMERIC_STRING_PATTERN = r"^-?\d+(\.\d+)?$"
 
 
-DEFAULT_INPUT_FILE = Path("data/raw/quality_test.csv")
+DEFAULT_INPUT_FILE = Path("data/raw/Warehouse_and_Retail_Sales.csv")
 DEFAULT_OUTPUT_FILE = Path("output/profile_report.json")
 
 

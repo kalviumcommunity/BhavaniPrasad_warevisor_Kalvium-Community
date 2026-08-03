@@ -137,8 +137,8 @@ if __name__ == "__main__":
     # Ensure processed directory exists
     os.makedirs('data/processed', exist_ok=True)
     
-    # Load data - Using the missing_data.csv asked to be created in Task 6
-    df = pd.read_csv('data/raw/missing_data.csv')
+    # Load the warehouse sales dataset and apply only the cleaning steps that fit its schema.
+    df = pd.read_csv('data/raw/Warehouse_and_Retail_Sales.csv', skipinitialspace=True)
     df_original = df.copy()
     
     # Analyze missing before treatment
@@ -148,17 +148,20 @@ if __name__ == "__main__":
     # Apply strategy-specific imputation
     print("\nStep 2: Applying imputation strategies...")
     
-    # Drop rows with nulls in critical columns
-    df = drop_rows_with_nulls(df, ['customer_id', 'email'])
-    
-    # Impute numerical columns
-    df = impute_mean_median(df, ['amount', 'quantity'], strategy='median')
-    
-    # Impute categorical columns
-    df = impute_mode(df, ['category', 'region'])
-    
-    # Impute time-series columns
-    df = impute_forward_fill(df, ['last_updated'])
+    # Drop rows with nulls in critical warehouse columns.
+    critical_columns = [col for col in ['YEAR', 'MONTH', 'SUPPLIER', 'ITEM CODE'] if col in df.columns]
+    if critical_columns:
+        df = drop_rows_with_nulls(df, critical_columns)
+
+    # Impute numerical warehouse columns.
+    numeric_columns = [col for col in ['RETAIL SALES', 'RETAIL TRANSFERS', 'WAREHOUSE SALES'] if col in df.columns]
+    if numeric_columns:
+        df = impute_mean_median(df, numeric_columns, strategy='median')
+
+    # Impute categorical warehouse columns.
+    categorical_columns = [col for col in ['SUPPLIER', 'ITEM TYPE'] if col in df.columns]
+    if categorical_columns:
+        df = impute_mode(df, categorical_columns)
     
     # Document decisions (pass df_original to calculate correctly)
     print("\nStep 3: Documenting imputation decisions...")
@@ -169,5 +172,5 @@ if __name__ == "__main__":
     validate_imputation(df_original, df)
     
     # Save cleaned data
-    df.to_csv('data/processed/cleaned_data.csv', index=False)
-    print("\n✓ Cleaned data saved to data/processed/cleaned_data.csv")
+    df.to_csv('data/processed/warehouse_retail_sales_cleaned.csv', index=False)
+    print("\n✓ Cleaned data saved to data/processed/warehouse_retail_sales_cleaned.csv")

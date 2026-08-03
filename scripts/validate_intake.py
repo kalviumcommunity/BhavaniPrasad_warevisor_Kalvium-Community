@@ -16,15 +16,20 @@ except ImportError:  # pragma: no cover - dependency is optional at runtime
     chardet = None
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_INPUT = REPO_ROOT / "data" / "raw" / "sample.csv"
+DEFAULT_INPUT = REPO_ROOT / "data" / "raw" / "Warehouse_and_Retail_Sales.csv"
 DEFAULT_OUTPUT = REPO_ROOT / "output" / "intake_report.json"
 DEFAULT_VALIDATION_OUTPUT = REPO_ROOT / "output" / "validation_report.json"
 DEFAULT_FAILURES_OUTPUT = REPO_ROOT / "output" / "validation_failures.csv"
 DEFAULT_EXPECTED_COLUMNS = [
-    "customer_id",
-    "customer_name",
-    "transaction_amount",
-    "transaction_date",
+    "YEAR",
+    "MONTH",
+    "SUPPLIER",
+    "ITEM CODE",
+    "ITEM DESCRIPTION",
+    "ITEM TYPE",
+    "RETAIL SALES",
+    "RETAIL TRANSFERS",
+    "WAREHOUSE SALES",
 ]
 
 
@@ -337,7 +342,7 @@ def generate_intake_report(
 
     try:
         if path.suffix.lower() == ".csv":
-            df = pd.read_csv(path)
+            df = pd.read_csv(path, skipinitialspace=True)
         elif path.suffix.lower() == ".json":
             df = pd.read_json(path)
         else:
@@ -370,7 +375,7 @@ if __name__ == "__main__":
 
     if report["status"] == "passed":
         if DEFAULT_INPUT.suffix.lower() == ".csv":
-            dataset = pd.read_csv(DEFAULT_INPUT)
+            dataset = pd.read_csv(DEFAULT_INPUT, skipinitialspace=True)
         elif DEFAULT_INPUT.suffix.lower() == ".json":
             dataset = pd.read_json(DEFAULT_INPUT)
         else:

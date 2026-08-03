@@ -17,8 +17,8 @@ from scripts.validate_intake import (
 )
 
 
-def test_validation_helpers_on_sample_csv():
-    filepath = ROOT / "data" / "raw" / "sample.csv"
+def test_validation_helpers_on_warehouse_csv():
+    filepath = ROOT / "data" / "raw" / "Warehouse_and_Retail_Sales.csv"
 
     file_exists, file_msg = validate_file_exists(filepath)
     assert file_exists is True
@@ -30,8 +30,18 @@ def test_validation_helpers_on_sample_csv():
 
     import pandas as pd
 
-    df = pd.read_csv(filepath)
-    expected_columns = ["customer_id", "customer_name", "transaction_amount", "transaction_date"]
+    df = pd.read_csv(filepath, skipinitialspace=True)
+    expected_columns = [
+        "YEAR",
+        "MONTH",
+        "SUPPLIER",
+        "ITEM CODE",
+        "ITEM DESCRIPTION",
+        "ITEM TYPE",
+        "RETAIL SALES",
+        "RETAIL TRANSFERS",
+        "WAREHOUSE SALES",
+    ]
     schema_valid, schema_msg = validate_schema(df, expected_columns)
     assert schema_valid is True
     assert "Schema valid" in schema_msg
@@ -47,18 +57,21 @@ def test_validation_helpers_on_sample_csv():
     stats = capture_dataset_stats(filepath, df)
     assert stats["rows"] == 3
     assert stats["columns"] == 4
+    assert stats["rows"] == len(df)
+    assert stats["columns"] == len(df.columns)
 
     report = generate_intake_report(filepath, expected_columns)
     assert report["validations"]["file_exists"].startswith("File exists")
     assert report["validations"]["format"].startswith("Format valid")
     assert report["validations"]["schema"].startswith("Schema valid")
     assert report["statistics"]["rows"] == 3
+    assert report["statistics"]["rows"] == len(df)
 
     report_path = ROOT / "output" / "intake_report.json"
     assert report_path.exists()
 
     report_data = json.loads(report_path.read_text(encoding="utf-8"))
-    assert report_data["filepath"].endswith("data/raw/sample.csv")
+    assert report_data["filepath"].endswith("data/raw/Warehouse_and_Retail_Sales.csv")
 
 
 def test_record_level_validation_rules_isolate_failures(tmp_path):

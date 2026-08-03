@@ -14,7 +14,7 @@ import seaborn as sns
 
 DEFAULT_OUTPUT_DIR = Path("output")
 DEFAULT_RAW_DATA_DIR = Path("data/raw")
-DEFAULT_CHURN_DATA_FILE = DEFAULT_RAW_DATA_DIR / "churn_data.csv"
+DEFAULT_CHURN_DATA_FILE = DEFAULT_OUTPUT_DIR / "churn_data.csv"
 DEFAULT_HEATMAP_FILE = DEFAULT_OUTPUT_DIR / "correlation_heatmap.png"
 
 
