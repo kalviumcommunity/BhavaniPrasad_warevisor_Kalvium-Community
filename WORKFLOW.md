@@ -8,7 +8,8 @@ Run the workflow from the repository root with:
 python scripts/data_workflow.py
 ```
 
-This command ingests the sample CSV file, processes the data, and writes the cleaned results to output/processed.csv.
+This command ingests the warehouse sales CSV file, processes the data, and writes the cleaned results to data/processed/warehouse_retail_sales_cleaned.csv.
+This command ingests the warehouse sales CSV file, processes the data, and writes the cleaned results to data/processed/warehouse_retail_sales_cleaned.csv.
 
 ## What each function does
 

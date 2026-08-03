@@ -9,10 +9,10 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 
-INPUT_FILE = "data/raw/sample.csv"
-OUTPUT_FILE = "output/processed.csv"
+INPUT_FILE = "data/raw/Warehouse_and_Retail_Sales.csv"
+OUTPUT_FILE = "data/processed/warehouse_retail_sales_cleaned.csv"
 OUTLIER_LOG_FILE = Path("output/cleaning_log.csv")
-OUTLIER_CANDIDATE_COLUMNS = ("revenue", "amount", "transaction_amount")
+OUTLIER_CANDIDATE_COLUMNS = ("retail_sales", "warehouse_sales", "revenue", "amount", "transaction_amount")
 
 
 def _resolve_outlier_column(df: pd.DataFrame, preferred_column: str | None = None) -> str:
@@ -195,6 +195,9 @@ def process_data(df: pd.DataFrame, cleaning_log_path: str | Path = OUTLIER_LOG_F
         base_amount = (
             df["transaction_amount_capped"] if "transaction_amount_capped" in df.columns else df["transaction_amount"]
         )
+        df["is_high_value"] = base_amount >= base_amount.median()
+    elif "retail_sales" in df.columns:
+        base_amount = df["retail_sales_capped"] if "retail_sales_capped" in df.columns else df["retail_sales"]
         df["is_high_value"] = base_amount >= base_amount.median()
 
     # Keep a light summary so the caller can see the impact of the cleaning step.

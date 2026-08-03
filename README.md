@@ -13,9 +13,9 @@ The project now includes a reproducible deduplication workflow for handling exac
   - writes before/after metrics to [output/dedup_summary.json](output/dedup_summary.json)
 
 ### Generated artifacts
-- Deduplicated dataset: [data/processed/deduplicated_data.csv](data/processed/deduplicated_data.csv)
+- Warehouse input: [data/raw/Warehouse_and_Retail_Sales.csv](data/raw/Warehouse_and_Retail_Sales.csv)
+- Cleaned warehouse output: [data/processed/warehouse_retail_sales_cleaned.csv](data/processed/warehouse_retail_sales_cleaned.csv)
 - Audit summary: [output/dedup_audit_summary.json](output/dedup_audit_summary.json)
-- Sample duplicate input: [data/raw/data_with_dupes.csv](data/raw/data_with_dupes.csv)
 
 ### Run it
 ```bash

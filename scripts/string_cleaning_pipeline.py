@@ -9,7 +9,7 @@ from typing import Any
 import pandas as pd
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_INPUT = REPO_ROOT / "data" / "raw" / "string_cleaning_sample.csv"
+DEFAULT_INPUT = REPO_ROOT / "data" / "raw" / "Warehouse_and_Retail_Sales.csv"
 DEFAULT_OUTPUT = REPO_ROOT / "data" / "processed" / "cleaned_strings.csv"
 DEFAULT_SUMMARY = REPO_ROOT / "output" / "string_cleaning_summary.json"
 

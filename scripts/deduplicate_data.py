@@ -10,9 +10,9 @@ from typing import Any
 import pandas as pd
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_INPUT = REPO_ROOT / "data" / "raw" / "data_with_dupes.csv"
+DEFAULT_INPUT = REPO_ROOT / "data" / "raw" / "Warehouse_and_Retail_Sales.csv"
 DEFAULT_OUTPUT_DIR = REPO_ROOT / "output"
-DEFAULT_PROCESSED_OUTPUT = REPO_ROOT / "data" / "processed" / "deduplicated_data.csv"
+DEFAULT_PROCESSED_OUTPUT = REPO_ROOT / "data" / "processed" / "warehouse_retail_sales_cleaned.csv"
 ROW_ID_COLUMN = "__row_id"
 
 
@@ -76,6 +76,31 @@ def remove_exact_duplicates(df: pd.DataFrame, keep: str = "first") -> pd.DataFra
     return df_dedup
 
 
+def remove_null_value_rows(df: pd.DataFrame, subset_columns: list[str] | None = None) -> pd.DataFrame:
+    """Remove rows that contain null values in the chosen columns."""
+    rows_before = len(df)
+
+    if subset_columns:
+        null_mask = df[subset_columns].isnull().any(axis=1)
+    else:
+        null_mask = df.isnull().any(axis=1)
+
+    df_clean = df.loc[~null_mask].copy()
+
+    rows_after = len(df_clean)
+    rows_removed = rows_before - rows_after
+    removal_pct = (rows_removed / rows_before) * 100 if rows_before else 0.0
+
+    print("\nNULL VALUE ROW REMOVAL")
+    print("=" * 60)
+    print(f"Columns checked: {subset_columns if subset_columns else 'all columns'}")
+    print(f"Rows before: {rows_before:,}")
+    print(f"Rows after:  {rows_after:,}")
+    print(f"Rows removed: {rows_removed:,} ({removal_pct:.2f}%)")
+
+    return df_clean
+
+
 def remove_near_duplicates(
     df: pd.DataFrame,
     key_columns: list[str],
@@ -83,13 +108,27 @@ def remove_near_duplicates(
 ) -> pd.DataFrame:
     """Remove near-duplicates by preserving the best record per business key."""
     rows_before = len(df)
+    duplicate_mask = df.duplicated(subset=key_columns, keep=False)
+
+    if not duplicate_mask.any():
+        print("\nNEAR-DUPLICATE REMOVAL")
+        print("=" * 60)
+        print(f"Keep strategy: {keep_strategy}")
+        print(f"Key columns: {key_columns}")
+        print(f"Rows before: {rows_before:,}")
+        print(f"Rows after:  {rows_before:,}")
+        print("Rows removed: 0 (0.00%)")
+        return df.copy()
+
+    duplicate_groups = df[duplicate_mask]
 
     if keep_strategy == "most_complete":
         kept_rows: list[pd.DataFrame] = []
-        for _, group in df.groupby(key_columns, sort=False):
+        for _, group in duplicate_groups.groupby(key_columns, sort=False):
             null_counts = group.isnull().sum(axis=1)
             best_idx = null_counts.idxmin()
             kept_rows.append(group.loc[[best_idx]])
+        kept_rows.append(df[~duplicate_mask])
         df_dedup = pd.concat(kept_rows, axis=0)
     elif keep_strategy == "last":
         df_dedup = df.drop_duplicates(subset=key_columns, keep="last")
@@ -197,7 +236,8 @@ def run_deduplication_workflow(
     processed_output: str | Path = DEFAULT_PROCESSED_OUTPUT,
 ) -> tuple[pd.DataFrame, dict[str, Any]]:
     """Execute the full deduplication workflow and save the outputs."""
-    df = pd.read_csv(input_file)
+    df = pd.read_csv(input_file, skipinitialspace=True)
+    df.columns = [column.strip() for column in df.columns]
     df[ROW_ID_COLUMN] = df.index
     df_original = df.copy()
 
@@ -206,19 +246,22 @@ def run_deduplication_workflow(
     print("=" * 70)
     print(f"Initial record count: {len(df):,}")
 
-    print("\n[Step 1/4] Detecting exact duplicates...")
+    print("\n[Step 1/5] Detecting exact duplicates...")
     detect_exact_duplicates(df)
 
-    print("\n[Step 2/4] Detecting near-duplicates by key...")
-    detect_near_duplicates(df, key_columns=["customer_id", "transaction_date"])
+    print("\n[Step 2/5] Detecting near-duplicates by key...")
+    detect_near_duplicates(df, key_columns=["YEAR", "MONTH", "SUPPLIER", "ITEM CODE", "ITEM DESCRIPTION", "ITEM TYPE"])
 
-    print("\n[Step 3/4] Removing exact duplicates (keeping first)...")
+    print("\n[Step 3/5] Removing exact duplicates (keeping first)...")
     df = remove_exact_duplicates(df, keep="first")
 
-    print("\n[Step 4/4] Removing near-duplicates (keeping most complete)...")
+    print("\n[Step 4/5] Removing rows with null values...")
+    df = remove_null_value_rows(df)
+
+    print("\n[Step 5/5] Removing near-duplicates (keeping most complete)...")
     df = remove_near_duplicates(
         df,
-        key_columns=["customer_id", "transaction_date"],
+        key_columns=["YEAR", "MONTH", "SUPPLIER", "ITEM CODE", "ITEM DESCRIPTION", "ITEM TYPE"],
         keep_strategy="most_complete",
     )
 

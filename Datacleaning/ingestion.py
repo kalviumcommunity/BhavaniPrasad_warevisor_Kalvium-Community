@@ -45,30 +45,18 @@ def document_ingestion(df, source):
 if __name__ == "__main__":
     import os
     base_dir = os.path.dirname(os.path.abspath(__file__))
+    warehouse_csv = os.path.join(base_dir, "..", "data", "raw", "Warehouse_and_Retail_Sales.csv")
     
     print("--- Testing Ingestion Functions ---")
     
-    # 1. Test Standard CSV
-    print("\n1. Testing ingest_csv with standard comma file:")
-    csv_path = os.path.join(base_dir, "sample_data.csv")
-    df_csv = ingest_csv(csv_path)
-    document_ingestion(df_csv, "sample_data.csv")
-    
-    # 2. Test Semicolon CSV
-    print("\n2. Testing ingest_csv with semicolon file:")
-    semi_path = os.path.join(base_dir, "semicolon_data.csv")
-    df_semi = ingest_csv(semi_path, delimiter=";")
-    document_ingestion(df_semi, "semicolon_data.csv")
-    
-    # 3. Test Nested JSON
-    print("\n3. Testing ingest_json with nested data:")
-    json_path = os.path.join(base_dir, "nested_data.json")
-    df_json = ingest_json(json_path, is_nested=True)
-    document_ingestion(df_json, "nested_data.json")
-    
-    # 4. Test Fallback CSV
-    print("\n4. Testing ingest_csv_with_fallback:")
-    df_fallback = ingest_csv_with_fallback(csv_path)
-    document_ingestion(df_fallback, "sample_data.csv (fallback method)")
+    # 1. Test standard CSV ingestion using the warehouse sales dataset.
+    print("\n1. Testing ingest_csv with warehouse sales file:")
+    df_csv = ingest_csv(warehouse_csv)
+    document_ingestion(df_csv, "Warehouse_and_Retail_Sales.csv")
+
+    # 2. Test fallback CSV ingestion against the same warehouse sales dataset.
+    print("\n2. Testing ingest_csv_with_fallback with warehouse sales file:")
+    df_fallback = ingest_csv_with_fallback(warehouse_csv)
+    document_ingestion(df_fallback, "Warehouse_and_Retail_Sales.csv (fallback method)")
     
     print("\nAll tests passed successfully!")

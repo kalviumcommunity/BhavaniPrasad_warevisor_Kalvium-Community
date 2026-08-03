@@ -208,17 +208,21 @@ def load_targets(path: str | Path) -> Dict[str, Dict[str, float]]:
 
 
 if __name__ == "__main__":
-    # Example run: attempt to load sample dataset in repo if present
+    # Example run: attempt to load the warehouse sales dataset in the repo if present.
     repo_root = Path(__file__).resolve().parents[1]
-    sample = repo_root / "data" / "raw" / "sample.csv"
-    if sample.exists():
-        df = pd.read_csv(sample)
+    warehouse = repo_root / "data" / "raw" / "Warehouse_and_Retail_Sales.csv"
+    if warehouse.exists():
+        df = pd.read_csv(warehouse, skipinitialspace=True)
         try:
-            mau = calculate_mau(df)
-            rpc = calculate_revenue_per_customer(df)
-            churn = calculate_churn_rate(df)
-            print(mau, rpc, churn)
+            print("Warehouse dataset loaded for KPI helpers.")
+            if {"customer_id", "transaction_date", "amount"}.issubset(df.columns):
+                mau = calculate_mau(df)
+                rpc = calculate_revenue_per_customer(df)
+                churn = calculate_churn_rate(df)
+                print(mau, rpc, churn)
+            else:
+                print("This KPI module expects customer-level columns such as customer_id, transaction_date, and amount.")
         except Exception as e:
             print("Example run failed:", e)
     else:
-        print("No sample data found. Import functions and call them with your DataFrame.")
+        print("No warehouse data found. Import functions and call them with your DataFrame.")

@@ -1,0 +1,10 @@
+{
+  "timestamp": "2026-08-03T14:41:27.553695",
+  "rows": 307645,
+  "passed": 307645,
+  "failed": 0,
+  "validation_columns": [],
+  "rule_summaries": [],
+  "failures_output": "output/validation_failures.csv",
+  "report_output": "output/validation_report.json"
+}

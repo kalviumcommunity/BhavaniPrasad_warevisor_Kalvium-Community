@@ -8,8 +8,8 @@ import pandas as pd
 
 
 BASE_DIR = Path(__file__).resolve().parents[1]
-RAW_DATA_FILE = BASE_DIR / "data/raw/untyped_data.csv"
-TYPED_DATA_FILE = BASE_DIR / "data/processed/typed_data.csv"
+RAW_DATA_FILE = BASE_DIR / "data/raw/Warehouse_and_Retail_Sales.csv"
+TYPED_DATA_FILE = BASE_DIR / "data/processed/warehouse_retail_sales_cleaned.csv"
 TYPE_REPORT_FILE = BASE_DIR / "output/dtype_conversion_report.csv"
 TYPE_LOG_FILE = BASE_DIR / "output/type_conversion_log.json"
 

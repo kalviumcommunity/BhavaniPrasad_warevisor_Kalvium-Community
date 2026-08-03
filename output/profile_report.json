@@ -1,99 +1,129 @@
 {
-  "dataset": "data/raw/quality_test.csv",
-  "record_count": 5,
-  "column_count": 5,
+  "dataset": "data/raw/Warehouse_and_Retail_Sales.csv",
+  "record_count": 307645,
+  "column_count": 9,
   "nulls_and_duplicates": {
     "null_counts": {
-      "customer_id": 0,
-      "name": 1,
-      "email": 2,
-      "amount": 1,
-      "status": 0
+      "YEAR": 0,
+      " MONTH": 0,
+      " SUPPLIER": 167,
+      " ITEM CODE": 0,
+      " ITEM DESCRIPTION": 0,
+      " ITEM TYPE": 1,
+      " RETAIL SALES": 3,
+      " RETAIL TRANSFERS": 0,
+      " WAREHOUSE SALES": 0
     },
     "null_percentages": {
-      "customer_id": 0.0,
-      "name": 20.0,
-      "email": 40.0,
-      "amount": 20.0,
-      "status": 0.0
+      "YEAR": 0.0,
+      " MONTH": 0.0,
+      " SUPPLIER": 0.05,
+      " ITEM CODE": 0.0,
+      " ITEM DESCRIPTION": 0.0,
+      " ITEM TYPE": 0.0,
+      " RETAIL SALES": 0.0,
+      " RETAIL TRANSFERS": 0.0,
+      " WAREHOUSE SALES": 0.0
     },
     "exact_duplicate_count": 0,
     "duplicate_percentage": 0.0
   },
   "numerical_stats": {
     "min": {
-      "customer_id": 1.0,
-      "amount": 100.0
+      "YEAR": 2017.0,
+      " MONTH": 1.0,
+      " RETAIL SALES": -6.49,
+      " RETAIL TRANSFERS": -38.49,
+      " WAREHOUSE SALES": -7800.0
     },
     "max": {
-      "customer_id": 5.0,
-      "amount": 500.0
+      "YEAR": 2020.0,
+      " MONTH": 12.0,
+      " RETAIL SALES": 2739.0,
+      " RETAIL TRANSFERS": 1990.83,
+      " WAREHOUSE SALES": 18317.0
     },
     "mean": {
-      "customer_id": 3.0,
-      "amount": 237.5
+      "YEAR": 2018.44,
+      " MONTH": 6.42,
+      " RETAIL SALES": 7.02,
+      " RETAIL TRANSFERS": 6.94,
+      " WAREHOUSE SALES": 25.29
     },
     "median": {
-      "customer_id": 3.0,
-      "amount": 175.0
+      "YEAR": 2019.0,
+      " MONTH": 7.0,
+      " RETAIL SALES": 0.32,
+      " RETAIL TRANSFERS": 0.0,
+      " WAREHOUSE SALES": 1.0
     },
     "std": {
-      "customer_id": 1.58,
-      "amount": 188.75
+      "YEAR": 1.08,
+      " MONTH": 3.46,
+      " RETAIL SALES": 30.99,
+      " RETAIL TRANSFERS": 30.24,
+      " WAREHOUSE SALES": 249.92
     },
     "null_count": {
-      "customer_id": 0.0,
-      "amount": 1.0
+      "YEAR": 0.0,
+      " MONTH": 0.0,
+      " RETAIL SALES": 3.0,
+      " RETAIL TRANSFERS": 0.0,
+      " WAREHOUSE SALES": 0.0
     }
   },
   "categorical_stats": {
-    "name": {
-      "unique_count": 3,
+    " SUPPLIER": {
+      "unique_count": 396,
       "top_values": {
-        "Alice": 2,
-        "Bob": 1,
-        "Diana": 1
+        "REPUBLIC NATIONAL DISTRIBUTING CO": 20995,
+        "LEGENDS LTD": 13634,
+        "SOUTHERN GLAZERS WINE AND SPIRITS": 11720,
+        "E & J GALLO WINERY": 10816,
+        "THE COUNTRY VINTNER, LLC DBA WINEBOW": 10669
       },
-      "null_count": 1
+      "null_count": 167
     },
-    "email": {
-      "unique_count": 2,
+    " ITEM CODE": {
+      "unique_count": 34056,
       "top_values": {
-        "alice@example.com": 2,
-        "charlie@example.com": 1
-      },
-      "null_count": 2
-    },
-    "status": {
-      "unique_count": 3,
-      "top_values": {
-        "active": 3,
-        "inactive": 1,
-        "-50": 1
+        "WC": 24,
+        "99665": 24,
+        "99668": 24,
+        "10269": 24,
+        "10271": 24
       },
       "null_count": 0
+    },
+    " ITEM DESCRIPTION": {
+      "unique_count": 34822,
+      "top_values": {
+        "BURGANS ALBARINO - 750ML": 44,
+        "SANTA JULIA TORRONTES SUSTAINABLE - 750ML": 39,
+        "LA VIELLE FERME CDV RED - 750ML": 35,
+        "LINGANORE BLACK RAVEN - 750ML": 34,
+        "MCCLINTOCK HERITAGE WHITE WHISKEY - 750ML": 33
+      },
+      "null_count": 0
+    },
+    " ITEM TYPE": {
+      "unique_count": 8,
+      "top_values": {
+        "WINE": 187640,
+        "LIQUOR": 64910,
+        "BEER": 42413,
+        "KEGS": 10146,
+        "NON-ALCOHOL": 1908
+      },
+      "null_count": 1
     }
   },
   "quality_issues": [
     {
-      "type": "High nulls",
-      "column": "email",
-      "severity": "HIGH",
-      "value": "40.0% missing",
-      "recommendation": "Consider imputation or column exclusion"
-    },
-    {
-      "type": "Potential duplicate entities",
-      "column": "name, email, amount, status",
-      "severity": "MEDIUM",
-      "value": "1 repeated records across non-ID fields (20.0%)",
-      "recommendation": "Review records for entity-level duplicates before cleaning"
-    },
-    {
       "type": "Corrupted categorical values",
-      "column": "status",
+      "column": " ITEM CODE",
       "severity": "MEDIUM",
-      "value": "Found numeric-like entries such as '-50'",
+      "value": "Found numeric-like entries such as '100009'",
       "recommendation": "Inspect the column for shifted rows or invalid category values"
     }
   ]
