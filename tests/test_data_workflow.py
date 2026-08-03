@@ -11,7 +11,14 @@ def test_outlier_detection_and_logging(tmp_path):
             {"customer_id": 1, "customer_name": "Alice", "transaction_amount": 10.0, "transaction_date": "2025-01-01"},
             {"customer_id": 2, "customer_name": "Bob", "transaction_amount": 12.0, "transaction_date": "2025-01-02"},
             {"customer_id": 3, "customer_name": "Carol", "transaction_amount": 11.0, "transaction_date": "2025-01-03"},
-            {"customer_id": 4, "customer_name": "Dave", "transaction_amount": 500.0, "transaction_date": "2025-01-04"},
+            {"customer_id": 4, "customer_name": "David", "transaction_amount": 10.5, "transaction_date": "2025-01-04"},
+            {"customer_id": 5, "customer_name": "Eve", "transaction_amount": 11.5, "transaction_date": "2025-01-05"},
+            {"customer_id": 6, "customer_name": "Frank", "transaction_amount": 10.2, "transaction_date": "2025-01-06"},
+            {"customer_id": 7, "customer_name": "Grace", "transaction_amount": 11.8, "transaction_date": "2025-01-07"},
+            {"customer_id": 8, "customer_name": "Heidi", "transaction_amount": 10.8, "transaction_date": "2025-01-08"},
+            {"customer_id": 9, "customer_name": "Ivan", "transaction_amount": 11.2, "transaction_date": "2025-01-09"},
+            {"customer_id": 10, "customer_name": "Judy", "transaction_amount": 10.9, "transaction_date": "2025-01-10"},
+            {"customer_id": 11, "customer_name": "Dave", "transaction_amount": 500.0, "transaction_date": "2025-01-11"},
         ]
     )
 
@@ -32,7 +39,7 @@ def test_outlier_detection_and_logging(tmp_path):
     assert "is_outlier_iqr" in processed.columns
     assert "is_outlier" in processed.columns
     assert processed["is_outlier"].sum() == 1
-    assert processed.loc[processed["customer_id"] == 4, "transaction_amount_capped"].iloc[0] < 500
+    assert processed.loc[processed["customer_id"] == 11, "transaction_amount_capped"].iloc[0] < 500
     assert processed["is_high_value"].dtype == bool
     assert log_path.exists()
 

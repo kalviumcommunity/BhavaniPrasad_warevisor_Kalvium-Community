@@ -1,4 +1,10 @@
 {
+  "timestamp": "2026-08-03T15:32:27.974585",
+  "filepath": "data\\raw\\sample.csv",
+  "validations": {
+    "file_exists": "File exists and has content",
+    "format": "Format valid: csv",
+    "schema": "Schema valid: 4 columns present",
   "timestamp": "2026-08-03T14:41:26.378118",
   "filepath": "data/raw/Warehouse_and_Retail_Sales.csv",
   "validations": {

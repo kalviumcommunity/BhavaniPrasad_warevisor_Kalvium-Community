@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RetailStock Manager - Manager Dashboard</title>
+  <link rel="stylesheet" href="styles.css">
+  <!-- Chart.js for data visualization -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+
+  <div class="app-container">
+    
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="brand-container">
+        <div class="brand-icon">
+          <i data-lucide="boxes"></i>
+        </div>
+        <div>
+          <div class="brand-name">WareVisor</div>
+          <div class="brand-tagline">RetailStock Manager</div>
+        </div>
+      </div>
+
+      <ul class="nav-menu">
+        <li class="nav-item active">
+          <a href="#dashboard">
+            <i data-lucide="layout-dashboard"></i>
+            <span>Dashboard</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="#all-products">
+            <i data-lucide="package"></i>
+            <span>All Products</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="#add-product">
+            <i data-lucide="package-plus"></i>
+            <span>Add Product</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="#stock-movements">
+            <i data-lucide="arrow-left-right"></i>
+            <span>Stock Movements</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="#reports">
+            <i data-lucide="bar-chart-3"></i>
+            <span>Reports</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="#alerts">
+            <i data-lucide="bell"></i>
+            <span>Alerts</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="#users">
+            <i data-lucide="users"></i>
+            <span>Users</span>
+          </a>
+        </li>
+      </ul>
+
+      <div class="sidebar-footer">
+        <ul class="nav-menu">
+          <li class="nav-item">
+            <a href="#settings">
+              <i data-lucide="settings"></i>
+              <span>Settings</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="#logout">
+              <i data-lucide="log-out"></i>
+              <span>Logout</span>
+            </a>
+          </li>
+        </ul>
+      </div>
+    </aside>
+
+    <!-- Main Wrapper -->
+    <div class="main-wrapper">
+      
+      <!-- Top Navigation Bar -->
+      <header class="top-bar">
+        <div class="top-bar-left">
+          <span class="role-badge-banner">ROLE 1: MANAGER</span>
+          <div class="page-title-group">
+            <h1>1. Manager Dashboard (Summary)</h1>
+            <p>Warehouse Inventory & Stock Overview</p>
+          </div>
+        </div>
+
+        <div class="top-bar-right">
+          <div class="search-box">
+            <i data-lucide="search"></i>
+            <input type="text" id="dashboardSearch" placeholder="Search products, SKUs, warehouses...">
+          </div>
+          
+          <button class="btn-secondary" id="exportBtn">
+            <i data-lucide="download" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle; margin-right: 4px;"></i> Export Report
+          </button>
+
+          <div class="user-profile">
+            <div class="user-avatar">M</div>
+            <div class="user-info">
+              <div class="user-name">Manager</div>
+              <div class="user-role">Central Admin</div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Dashboard Body Content -->
+      <main class="dashboard-container">
+        
+        <!-- 4 KPI Cards Grid -->
+        <section class="kpi-grid">
+          
+          <!-- Card 1: Total Products -->
+          <div class="kpi-card" id="kpiTotalProducts">
+            <div class="kpi-card-header">
+              <span class="kpi-title">Total Products</span>
+              <div class="kpi-icon-wrapper blue">
+                <i data-lucide="package"></i>
+              </div>
+            </div>
+            <div class="kpi-value-row">
+              <span class="kpi-value">1,248</span>
+              <span class="kpi-badge success"><i data-lucide="trending-up"></i> +4.2%</span>
+            </div>
+            <div class="kpi-subtext">All Warehouses</div>
+          </div>
+
+          <!-- Card 2: Total Stock -->
+          <div class="kpi-card" id="kpiTotalStock">
+            <div class="kpi-card-header">
+              <span class="kpi-title">Total Stock</span>
+              <div class="kpi-icon-wrapper green">
+                <i data-lucide="boxes"></i>
+              </div>
+            </div>
+            <div class="kpi-value-row">
+              <span class="kpi-value">45,780</span>
+              <span class="kpi-badge success"><i data-lucide="trending-up"></i> +12.5%</span>
+            </div>
+            <div class="kpi-subtext">All Warehouses</div>
+          </div>
+
+          <!-- Card 3: Low Stock Products -->
+          <div class="kpi-card" id="kpiLowStock" onclick="openLowStockModal()">
+            <div class="kpi-card-header">
+              <span class="kpi-title">Low Stock Products</span>
+              <div class="kpi-icon-wrapper orange">
+                <i data-lucide="alert-triangle"></i>
+              </div>
+            </div>
+            <div class="kpi-value-row">
+              <span class="kpi-value">86</span>
+              <span class="kpi-badge warning"><i data-lucide="alert-circle"></i> Attention</span>
+            </div>
+            <div class="kpi-subtext">Reorder Soon (Click to View)</div>
+          </div>
+
+          <!-- Card 4: Out of Stock -->
+          <div class="kpi-card" id="kpiOutOfStock" onclick="openLowStockModal()">
+            <div class="kpi-card-header">
+              <span class="kpi-title">Out of Stock</span>
+              <div class="kpi-icon-wrapper red">
+                <i data-lucide="x-circle"></i>
+              </div>
+            </div>
+            <div class="kpi-value-row">
+              <span class="kpi-value">12</span>
+              <span class="kpi-badge danger"><i data-lucide="alert-octagon"></i> Critical</span>
+            </div>
+            <div class="kpi-subtext">Action Required (Click to View)</div>
+          </div>
+
+        </section>
+
+        <!-- Charts Section Grid -->
+        <section class="charts-grid">
+          
+          <!-- Stock Overview Line Chart -->
+          <div class="chart-card">
+            <div class="card-header">
+              <h2>Stock Overview</h2>
+              <select class="select-filter" id="periodFilter" onchange="updateStockTrendChart()">
+                <option value="year">This Year</option>
+                <option value="quarter">This Quarter</option>
+                <option value="month">This Month</option>
+              </select>
+            </div>
+            <div class="chart-container">
+              <canvas id="stockOverviewChart"></canvas>
+            </div>
+          </div>
+
+          <!-- Stock by Category Donut Chart -->
+          <div class="chart-card">
+            <div class="card-header">
+              <h2>Stock by Category</h2>
+              <button class="btn-secondary" onclick="exportCategoryData()">Details</button>
+            </div>
+            <div class="chart-container" style="max-height: 200px;">
+              <canvas id="categoryDonutChart"></canvas>
+            </div>
+            <div class="category-legend-list">
+              <div class="legend-item">
+                <div class="legend-info">
+                  <span class="legend-dot" style="background-color: #3b82f6;"></span>
+                  <span>Electronics</span>
+                </div>
+                <span class="legend-pct">41%</span>
+              </div>
+              <div class="legend-item">
+                <div class="legend-info">
+                  <span class="legend-dot" style="background-color: #f59e0b;"></span>
+                  <span>Clothing</span>
+                </div>
+                <span class="legend-pct">25%</span>
+              </div>
+              <div class="legend-item">
+                <div class="legend-info">
+                  <span class="legend-dot" style="background-color: #10b981;"></span>
+                  <span>Home & Kitchen</span>
+                </div>
+                <span class="legend-pct">18%</span>
+              </div>
+              <div class="legend-item">
+                <div class="legend-info">
+                  <span class="legend-dot" style="background-color: #ef4444;"></span>
+                  <span>Beauty</span>
+                </div>
+                <span class="legend-pct">10%</span>
+              </div>
+              <div class="legend-item">
+                <div class="legend-info">
+                  <span class="legend-dot" style="background-color: #8b5cf6;"></span>
+                  <span>Others</span>
+                </div>
+                <span class="legend-pct">6%</span>
+              </div>
+            </div>
+          </div>
+
+        </section>
+
+        <!-- Bottom Grid Section -->
+        <section class="bottom-grid">
+          
+          <!-- Top Warehouses by Stock -->
+          <div class="section-card">
+            <div class="card-header">
+              <h2>Top Warehouses by Stock</h2>
+              <button class="btn-secondary" onclick="openWarehouseModal()">View All</button>
+            </div>
+            
+            <div class="warehouse-list" id="warehouseListContainer">
+              
+              <div class="warehouse-item">
+                <div class="wh-details">
+                  <h3>1. Central Warehouse</h3>
+                  <p>New Delhi • Manager: Amit Sen</p>
+                </div>
+                <div class="wh-stock">
+                  <div class="wh-count">18,500 units</div>
+                  <div class="wh-capacity-bar">
+                    <div class="wh-capacity-fill" style="width: 85%; background-color: #3b82f6;"></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="warehouse-item">
+                <div class="wh-details">
+                  <h3>2. North Zone Warehouse</h3>
+                  <p>Delhi • Manager: Simran Kaur</p>
+                </div>
+                <div class="wh-stock">
+                  <div class="wh-count">12,300 units</div>
+                  <div class="wh-capacity-bar">
+                    <div class="wh-capacity-fill" style="width: 65%; background-color: #10b981;"></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="warehouse-item">
+                <div class="wh-details">
+                  <h3>3. South Zone Warehouse</h3>
+                  <p>Bangalore • Manager: Suresh Babu</p>
+                </div>
+                <div class="wh-stock">
+                  <div class="wh-count">8,850 units</div>
+                  <div class="wh-capacity-bar">
+                    <div class="wh-capacity-fill" style="width: 45%; background-color: #f59e0b;"></div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Recent Stock Movements -->
+          <div class="section-card">
+            <div class="card-header">
+              <h2>Recent Stock Movements</h2>
+              <button class="btn-secondary" onclick="exportMovementsCSV()">View All</button>
+            </div>
+            
+            <div class="movement-feed" id="movementFeedContainer">
+              
+              <div class="movement-item">
+                <div class="movement-icon inbound">
+                  <i data-lucide="arrow-down-left"></i>
+                </div>
+                <div class="movement-info">
+                  <div class="movement-title">Wireless Mouse (WM-101)</div>
+                  <div class="movement-meta">Inbound to Central Warehouse • 15 Jul 2026, 10:30 AM</div>
+                </div>
+                <div class="movement-qty inbound">+150 units</div>
+              </div>
+
+              <div class="movement-item">
+                <div class="movement-icon outbound">
+                  <i data-lucide="arrow-up-right"></i>
+                </div>
+                <div class="movement-info">
+                  <div class="movement-title">Workstation Chair (WC-502)</div>
+                  <div class="movement-meta">Outbound from South Warehouse • 15 Jul 2026, 09:15 AM</div>
+                </div>
+                <div class="movement-qty outbound">-45 units</div>
+              </div>
+
+              <div class="movement-item">
+                <div class="movement-icon inbound">
+                  <i data-lucide="arrow-down-left"></i>
+                </div>
+                <div class="movement-info">
+                  <div class="movement-title">T-Shirt (Blue - Size L)</div>
+                  <div class="movement-meta">Inbound to North Warehouse • 14 Jul 2026, 04:45 PM</div>
+                </div>
+                <div class="movement-qty inbound">+300 units</div>
+              </div>
+
+            </div>
+          </div>
+
+        </section>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- Low Stock Modal -->
+  <div class="modal-overlay" id="lowStockModal">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3><i data-lucide="alert-triangle" style="color: #f59e0b; vertical-align: middle; margin-right: 8px;"></i> Low & Out of Stock Products</h3>
+        <button class="modal-close" onclick="closeLowStockModal()">&times;</button>
+      </div>
+      <div class="table-responsive">
+        <table class="modal-table">
+          <thead>
+            <tr>
+              <th>Product Name</th>
+              <th>SKU</th>
+              <th>Category</th>
+              <th>Warehouse</th>
+              <th>Stock</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Ergonomic Keyboard</td>
+              <td>KB-882</td>
+              <td>Electronics</td>
+              <td>Central Warehouse</td>
+              <td>5 units</td>
+              <td><span class="kpi-badge warning">Low Stock</span></td>
+            </tr>
+            <tr>
+              <td>Denim Jacket (M)</td>
+              <td>DJ-741</td>
+              <td>Clothing</td>
+              <td>North Warehouse</td>
+              <td>3 units</td>
+              <td><span class="kpi-badge warning">Low Stock</span></td>
+            </tr>
+            <tr>
+              <td>Smart Fitness Band</td>
+              <td>FB-909</td>
+              <td>Electronics</td>
+              <td>South Warehouse</td>
+              <td>0 units</td>
+              <td><span class="kpi-badge danger">Out of Stock</span></td>
+            </tr>
+            <tr>
+              <td>Shampoo Bottle (500ml)</td>
+              <td>SCH-012</td>
+              <td>Beauty</td>
+              <td>South Warehouse</td>
+              <td>0 units</td>
+              <td><span class="kpi-badge danger">Out of Stock</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Warehouse Modal -->
+  <div class="modal-overlay" id="warehouseModal">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3><i data-lucide="building-2" style="color: #2563eb; vertical-align: middle; margin-right: 8px;"></i> All Warehouses Overview</h3>
+        <button class="modal-close" onclick="closeWarehouseModal()">&times;</button>
+      </div>
+      <div class="table-responsive">
+        <table class="modal-table">
+          <thead>
+            <tr>
+              <th>Warehouse Name</th>
+              <th>Location</th>
+              <th>Manager</th>
+              <th>Total Stock</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Central Warehouse</td>
+              <td>New Delhi</td>
+              <td>Amit Sen</td>
+              <td>18,500 units</td>
+              <td><span class="kpi-badge success">Active</span></td>
+            </tr>
+            <tr>
+              <td>North Zone Warehouse</td>
+              <td>Delhi</td>
+              <td>Simran Kaur</td>
+              <td>12,300 units</td>
+              <td><span class="kpi-badge success">Active</span></td>
+            </tr>
+            <tr>
+              <td>South Zone Warehouse</td>
+              <td>Bangalore</td>
+              <td>Suresh Babu</td>
+              <td>8,850 units</td>
+              <td><span class="kpi-badge success">Active</span></td>
+            </tr>
+            <tr>
+              <td>East Coast Hub</td>
+              <td>Kolkata</td>
+              <td>Priya Das</td>
+              <td>6,130 units</td>
+              <td><span class="kpi-badge success">Active</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script src="dashboard.js"></script>
+</body>
+</html>
