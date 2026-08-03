@@ -1,11 +1,11 @@
 {
-  "timestamp": "2026-07-14T15:18:06.581736",
+  "timestamp": "2026-08-03T15:32:27.974585",
   "filepath": "data\\raw\\sample.csv",
   "validations": {
     "file_exists": "File exists and has content",
     "format": "Format valid: csv",
     "schema": "Schema valid: 4 columns present",
-    "encoding": "Detected: ascii (confidence: 100.0%)"
+    "encoding": "Detected: utf-8 (confidence: 100.0%)"
   },
   "validation_statuses": {
     "file_exists": "passed",

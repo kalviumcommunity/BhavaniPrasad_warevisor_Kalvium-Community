@@ -33,22 +33,26 @@ def test_validation_helpers_on_sample_csv():
     df = pd.read_csv(filepath)
     expected_columns = ["customer_id", "customer_name", "transaction_amount", "transaction_date"]
     schema_valid, schema_msg = validate_schema(df, expected_columns)
-    assert schema_valid is False
-    assert "Missing columns" in schema_msg
+    assert schema_valid is True
+    assert "Schema valid" in schema_msg
+
+    invalid_schema_valid, invalid_schema_msg = validate_schema(df, expected_columns + ["missing_col"])
+    assert invalid_schema_valid is False
+    assert "Missing columns" in invalid_schema_msg
 
     encoding, encoding_msg = detect_encoding(filepath)
     assert encoding is not None
     assert "Detected" in encoding_msg
 
     stats = capture_dataset_stats(filepath, df)
-    assert stats["rows"] == 7
-    assert stats["columns"] == 5
+    assert stats["rows"] == 3
+    assert stats["columns"] == 4
 
     report = generate_intake_report(filepath, expected_columns)
     assert report["validations"]["file_exists"].startswith("File exists")
     assert report["validations"]["format"].startswith("Format valid")
-    assert report["validations"]["schema"]
-    assert report["statistics"]["rows"] == 7
+    assert report["validations"]["schema"].startswith("Schema valid")
+    assert report["statistics"]["rows"] == 3
 
     report_path = ROOT / "output" / "intake_report.json"
     assert report_path.exists()
