@@ -94,39 +94,74 @@ elif page == "Trends":
         )
 
 elif page == "Data Explorer":
-    # Task 3: Visual Hierarchy - Page Title
     st.title("Data Explorer")
+    st.write("Upload your dataset to explore, clean, and visualize the data automatically.")
 
-    # Task 3: Headers and Subheaders
-    st.header("Data Filters & Controls")
-    st.subheader("Interactive Filtering Options")
+    # Task 1 & Task 4: File Upload and Error Handling
+    uploaded_file = st.file_uploader("Upload your dataset", type=["csv", "json"])
 
-    # Task 2: Columns layout for filters
-    filter_col1, filter_col2 = st.columns(2)
-    with filter_col1:
-        region = st.selectbox("Select Region", ["All Regions", "North America", "Europe", "Asia Pacific"])
-    with filter_col2:
-        segment = st.selectbox("Select Customer Segment", ["All Segments", "Enterprise", "SMB", "Consumer"])
+    if uploaded_file is not None:
+        try:
+            if uploaded_file.name.endswith(".csv"):
+                df = pd.read_csv(uploaded_file)
+            elif uploaded_file.name.endswith(".json"):
+                df = pd.read_json(uploaded_file)
+            else:
+                st.error("Unsupported file type.")
+                st.stop()
 
-    st.divider()
+            if len(df) == 0:
+                st.warning("Uploaded file is empty.")
+                st.stop()
+        except Exception:
+            st.error("Could not read this file. Check the format and try again.")
+            st.stop()
+            
+        st.success(f"Loaded: {uploaded_file.name} ({len(df)} rows, {len(df.columns)} columns)")
 
-    st.header("Detailed Data Table")
-    st.subheader("Filter and Export")
-    st.write(f"Displaying dataset records for Region: **{region}** | Segment: **{segment}**")
+        st.divider()
 
-    # Task 2: Expander for raw data and download
-    with st.expander("View Raw Data"):
-        sample_data = pd.DataFrame({
-            "Order ID": [101, 102, 103, 104, 105],
-            "Date": ["2026-01-15", "2026-01-16", "2026-01-17", "2026-01-18", "2026-01-19"],
-            "Region": ["North America", "Europe", "Asia Pacific", "North America", "Europe"],
-            "Segment": ["Enterprise", "SMB", "Consumer", "Enterprise", "SMB"],
-            "Amount ($)": [1250.00, 450.50, 89.99, 3400.00, 620.00]
+        # Task 2: Display Automatic Preview
+        st.header("Dataset Preview")
+
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("Rows", f"{len(df):,}")
+        with col2:
+            st.metric("Columns", str(len(df.columns)))
+        with col3:
+            null_pct = (df.isnull().sum().sum() / (df.shape[0] * df.shape[1]) * 100) if not df.empty else 0
+            st.metric("Null %", f"{null_pct:.1f}%")
+
+        st.subheader("First 10 Rows")
+        st.dataframe(df.head(10), use_container_width=True)
+
+        st.subheader("Column Summary")
+        summary = pd.DataFrame({
+            "Column": df.columns,
+            "Type": df.dtypes.astype(str).values,
+            "Non-Null": df.notnull().sum().values,
+            "Null Count": df.isnull().sum().values,
+            "Null %": (df.isnull().sum() / len(df) * 100).round(1).values
         })
-        st.dataframe(sample_data, use_container_width=True)
-        st.download_button(
-            label="Download CSV",
-            data=sample_data.to_csv(index=False),
-            file_name="data_explorer.csv",
-            mime="text/csv"
-        )
+        st.dataframe(summary, use_container_width=True)
+
+        st.divider()
+
+        # Task 3: Display Basic Statistics
+        st.header("Descriptive Statistics")
+        st.dataframe(df.describe(), use_container_width=True)
+
+        st.divider()
+
+        # Task 5: Ensure Data Is Usable Downstream (Visualization)
+        st.header("Quick Exploration")
+        numeric_cols = df.select_dtypes(include="number").columns.tolist()
+        if numeric_cols:
+            selected_col = st.selectbox("Select a numeric column to visualise distribution", numeric_cols)
+            st.bar_chart(df[selected_col].value_counts().head(20))
+        else:
+            st.info("No numeric columns available for visualization.")
+
+    else:
+        st.info("Upload a CSV or JSON file to begin.")
