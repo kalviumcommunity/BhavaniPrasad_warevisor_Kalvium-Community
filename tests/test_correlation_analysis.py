@@ -20,7 +20,7 @@ def test_generate_synthetic_churn_data(tmp_path):
 
     assert output_file.exists()
     assert len(df) == 200
-    assert list(df.columns) == ["customer_id", "engagement", "transactions_per_month", "support_tickets", "churn"]
+    assert set(df.columns) == {"customer_id", "engagement", "transactions_per_month", "support_tickets", "response_time_hours", "churn"}
 
     # Check correlations
     corr = df.corr()

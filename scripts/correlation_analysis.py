@@ -14,7 +14,7 @@ import seaborn as sns
 
 DEFAULT_OUTPUT_DIR = Path("output")
 DEFAULT_RAW_DATA_DIR = Path("data/raw")
-DEFAULT_CHURN_DATA_FILE = DEFAULT_RAW_DATA_DIR / "churn_data.csv"
+DEFAULT_CHURN_DATA_FILE = DEFAULT_OUTPUT_DIR / "churn_data.csv"
 DEFAULT_HEATMAP_FILE = DEFAULT_OUTPUT_DIR / "correlation_heatmap.png"
 
 
@@ -154,11 +154,16 @@ def get_business_interpretation() -> dict:
 
 def perform_feature_selection(df: pd.DataFrame) -> pd.DataFrame:
     """Task 5: Drop redundant highly-correlated features."""
-    df_features = df[["engagement", "transactions_per_month", "support_tickets", "response_time_hours", "churn"]]
+    target_cols = ["engagement", "transactions_per_month", "support_tickets", "response_time_hours", "churn"]
+    cols = [c for c in target_cols if c in df.columns]
+    df_features = df[cols]
 
     # transactions_per_month and engagement are r=0.92 (correlated)
     # Drop redundant, keep more interpretable feature: transactions_per_month
-    df_features_selected = df_features.drop("engagement", axis=1)
+    if "engagement" in df_features.columns:
+        df_features_selected = df_features.drop("engagement", axis=1)
+    else:
+        df_features_selected = df_features
 
     print("--- Task 5: Feature Selection (Removed 'engagement') ---")
     selected_corr = df_features_selected.corr()

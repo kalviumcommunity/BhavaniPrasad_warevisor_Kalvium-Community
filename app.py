@@ -1,56 +1,126 @@
 import streamlit as st
 import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
 
 # Configure page layout
-st.set_page_config(page_title="Analytics Dashboard", layout="wide")
-
-# Task 1: Create Sidebar Navigation
-st.sidebar.title("Navigation")
-page = st.sidebar.radio(
-    "Go to",
-    ["Overview", "Trends", "Data Explorer"]
+st.set_page_config(
+    page_title="WareVisor - Manager Dashboard",
+    page_icon="📦",
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
-# Task 5: Important Content Above the Fold
-if page == "Overview":
-    # Task 3: Visual Hierarchy - Page Title
-    st.title("Business Overview")
+# Custom Styling for Manager Dashboard matching design system
+st.markdown("""
+<style>
+    .main .block-container {
+        padding-top: 1.5rem;
+        padding-bottom: 2rem;
+    }
+    .stMetric {
+        background-color: #ffffff;
+        border: 1px solid #e2e8f0;
+        padding: 16px;
+        border-radius: 12px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    div[data-testid="stMetricValue"] {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #0f172a;
+    }
+    .badge-banner {
+        background: linear-gradient(90deg, #1e3a8a, #2563eb);
+        color: white;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        display: inline-block;
+        margin-bottom: 8px;
+    }
+    .wh-card {
+        background-color: #f8fafc;
+        border: 1px solid #f1f5f9;
+        border-radius: 10px;
+        padding: 12px 16px;
+        margin-bottom: 10px;
+    }
+</style>
+""", unsafe_allow_html=True)
 
-    # Task 2 & 5: Top KPI row using st.columns (above the fold)
-    col1, col2, col3, col4, col5 = st.columns(5)
+# Sidebar Navigation (Role 1: Manager)
+st.sidebar.markdown("### 📦 WareVisor")
+st.sidebar.caption("RetailStock Manager Portal")
+st.sidebar.divider()
+
+page = st.sidebar.radio(
+    "Navigation",
+    [
+        "📊 Dashboard",
+        "📦 All Products",
+        "➕ Add Product",
+        "🚚 Stock Movements",
+        "📈 Reports",
+        "🔔 Alerts",
+        "👥 Users",
+        "⚙️ Settings"
+    ]
+)
+
+st.sidebar.divider()
+st.sidebar.info("Logged in as: **Manager** (Central Admin)")
+
+if page == "📊 Dashboard":
+    # Role Banner and Page Title
+    st.markdown('<span class="badge-banner">ROLE 1: MANAGER</span>', unsafe_allow_html=True)
+    st.title("1. Manager Dashboard (Summary)")
+    st.caption("Real-time view of inventory across all warehouses")
+
+    st.markdown("---")
+
+    # 4 KPI Cards Row
+    col1, col2, col3, col4 = st.columns(4)
     with col1:
-        st.metric("Revenue", "$5.2M", "+12.5%")
+        st.metric(label="Total Products", value="1,248", delta="+4.2% MoM", help="All Warehouses")
     with col2:
-        st.metric("Users", "2,500", "+5.2%")
+        st.metric(label="Total Stock", value="45,780", delta="+12.5% MoM", help="All Warehouses")
     with col3:
-        st.metric("AOV", "$45", "+2.1%")
+        st.metric(label="Low Stock Products", value="86", delta="Reorder Soon", delta_color="inverse", help="Items needing reorder")
     with col4:
-        st.metric("Churn", "5.2%", "-2.8%", delta_color="inverse")
-    with col5:
-        st.metric("NPS", "72", "+4")
+        st.metric(label="Out of Stock", value="12", delta="Action Required", delta_color="inverse", help="Critical alert")
 
-    # Task 3: Dividers, Headers, and Subheaders
-    st.divider()
+    st.write("")
 
-    st.header("Executive Summary")
-    st.subheader("Key Performance Highlights")
+    # 2 Charts Grid
+    chart_col1, chart_col2 = st.columns([2, 1.2])
 
-    summary_col1, summary_col2 = st.columns(2)
-    with summary_col1:
-        st.write("• **Revenue Surge:** Enterprise subscriptions grew 18% YoY.")
-        st.write("• **Customer Retention:** Churn reduced by 2.8% following onboarding updates.")
-    with summary_col2:
-        st.write("• **User Acquisition:** Active user base expanded past 2,500 accounts.")
-        st.write("• **Customer Satisfaction:** NPS score reached an all-time high of 72.")
+    with chart_col1:
+        st.subheader("Stock Overview")
+        period = st.selectbox("Select Filter", ["This Year", "This Quarter", "This Month"], key="period_sel")
+        
+        # Stock overview line chart data
+        if period == "This Year":
+            df_trend = pd.DataFrame({
+                "Month": ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug"],
+                "Stock": [28000, 32000, 29000, 37000, 34000, 41000, 43500, 45780]
+            })
+        elif period == "This Quarter":
+            df_trend = pd.DataFrame({
+                "Month": ["May", "Jun", "Jul", "Aug"],
+                "Stock": [34000, 41000, 43500, 45780]
+            })
+        else:
+            df_trend = pd.DataFrame({
+                "Month": ["Week 1", "Week 2", "Week 3", "Week 4"],
+                "Stock": [42000, 43200, 44800, 45780]
+            })
 
-    st.divider()
-
-    # Task 2: Progressive disclosure using st.expander
-    with st.expander("About These Metrics"):
-        st.write(
-            "Revenue is calculated as sum of all order amounts for the current month. "
-            "Churn is the percentage of customers who did not return within 30 days. "
-            "AOV represents Average Order Value across all completed transactions."
+        fig_line = px.line(
+            df_trend, x="Month", y="Stock", markers=True,
+            line_shape="spline", title=f"Stock Trend ({period})"
         )
 
 elif page == "Trends":
