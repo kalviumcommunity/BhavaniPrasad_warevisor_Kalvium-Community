@@ -10,7 +10,7 @@ import pandas as pd
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_INPUT_FILE = REPO_ROOT / "data" / "raw" / "untyped_data.csv"
+DEFAULT_INPUT_FILE = REPO_ROOT / "data" / "raw" / "Warehouse_and_Retail_Sales.csv"
 DEFAULT_OUTPUT_DIR = REPO_ROOT / "output"
 DEFAULT_OUTPUT_FILE = DEFAULT_OUTPUT_DIR / "datetime_features.csv"
 DEFAULT_REPORT_FILE = DEFAULT_OUTPUT_DIR / "datetime_feature_report.json"
@@ -31,6 +31,19 @@ def load_transaction_data(filepath: str | Path) -> pd.DataFrame:
         return pd.read_json(path)
 
     raise ValueError(f"Unsupported file format: {path.suffix}")
+
+
+def _prepare_warehouse_dataset(df: pd.DataFrame) -> pd.DataFrame:
+    """Add transaction-style columns when the warehouse dataset is used."""
+    result = df.copy()
+    if "transaction_date" not in result.columns and {"YEAR", "MONTH"}.issubset(result.columns):
+        result["transaction_date"] = pd.to_datetime(
+            dict(year=result["YEAR"], month=result["MONTH"], day=1),
+            errors="coerce",
+        )
+    if "amount" not in result.columns and "RETAIL SALES" in result.columns:
+        result["amount"] = pd.to_numeric(result["RETAIL SALES"], errors="coerce")
+    return result
 
 
 def _normalize_timestamp_strings(series: pd.Series) -> pd.Series:
@@ -68,14 +81,15 @@ def add_time_features(df: pd.DataFrame, column: str = "transaction_date") -> pd.
 
 def compute_recency_metrics(df: pd.DataFrame, customer_column: str = "customer_id", date_column: str = "transaction_date") -> pd.DataFrame:
     """Compute days since last purchase per customer and attach it back to the rows."""
-    if customer_column not in df.columns:
-        raise KeyError(f"Missing required column: {customer_column}")
     if date_column not in df.columns:
         raise KeyError(f"Missing required column: {date_column}")
 
     result = df.copy()
     today = pd.Timestamp.now()
-    last_purchase = result.groupby(customer_column)[date_column].transform("max")
+    if customer_column in result.columns:
+        last_purchase = result.groupby(customer_column)[date_column].transform("max")
+    else:
+        last_purchase = result[date_column]
     result["days_since_last_purchase"] = (today - last_purchase).dt.days
     return result
 
@@ -116,10 +130,10 @@ def save_hour_distribution_plot(df: pd.DataFrame, output_path: str | Path) -> No
 
 def build_feature_pipeline(filepath: str | Path = DEFAULT_INPUT_FILE) -> dict[str, object]:
     """Run the full datetime feature engineering pipeline."""
-    df = load_transaction_data(filepath)
+    df = _prepare_warehouse_dataset(load_transaction_data(filepath))
     df = parse_transaction_dates(df)
     df = add_time_features(df)
-    df = compute_recency_metrics(df)
+    df = compute_recency_metrics(df, customer_column="SUPPLIER" if "SUPPLIER" in df.columns else "customer_id")
 
     aggregations = build_time_indexed_aggregation(df)
     save_hour_distribution_plot(df, DEFAULT_HOUR_PLOT_FILE)
@@ -132,7 +146,7 @@ def build_feature_pipeline(filepath: str | Path = DEFAULT_INPUT_FILE) -> dict[st
         "timestamp_dtype": str(df["transaction_date"].dtype),
         "min_date": df["transaction_date"].min().isoformat(),
         "max_date": df["transaction_date"].max().isoformat(),
-        "days_in_dataset": int((df["transaction_date"].max() - df["transaction_date"].min()).days),
+        "days_in_dataset": int((df["transaction_date"].max() - df["transaction_date"].min()).days) if df["transaction_date"].notna().any() else 0,
         "hours_with_data": sorted(int(value) for value in pd.Series(df["hour"].unique()).dropna().tolist()),
         "weeks_in_dataset": int(df["week_num"].nunique()),
         "min_days_since_purchase": int(df["days_since_last_purchase"].min()),

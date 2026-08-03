@@ -6,7 +6,7 @@ import os
 # ---------------------------------------------------------
 # SETUP: Generate Synthetic Data for the Assignment
 # ---------------------------------------------------------
-data_path = 'data/raw/payment_data.csv'
+data_path = 'output/payment_data.csv'
 
 if not os.path.exists(data_path):
     print("Generating synthetic payment data...")

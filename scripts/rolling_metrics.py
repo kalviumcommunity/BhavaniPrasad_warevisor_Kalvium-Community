@@ -10,7 +10,7 @@ import pandas as pd
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_INPUT_FILE = REPO_ROOT / "data" / "raw" / "sample.csv"
+DEFAULT_INPUT_FILE = REPO_ROOT / "data" / "raw" / "Warehouse_and_Retail_Sales.csv"
 DEFAULT_OUTPUT_DIR = REPO_ROOT / "output"
 DEFAULT_PLOT_FILE = DEFAULT_OUTPUT_DIR / "rolling_avg.png"
 DEFAULT_REPORT_FILE = DEFAULT_OUTPUT_DIR / "trend_analysis.txt"
@@ -20,6 +20,24 @@ DEFAULT_ANOMALY_PLOT_FILE = DEFAULT_OUTPUT_DIR / "anomaly_detection.png"
 DATE_CANDIDATES = ("date", "transaction_date", "order_date", "timestamp")
 VALUE_CANDIDATES = ("revenue", "transaction_amount", "amount", "sales")
 COUNT_CANDIDATES = ("orders", "order_id", "customer_id")
+
+
+def _coerce_warehouse_date_frame(df: pd.DataFrame) -> pd.DataFrame:
+    """Create a transaction-date column from warehouse year/month data when needed."""
+    if any(column in df.columns for column in DATE_CANDIDATES):
+        return df
+
+    year_column = next((column for column in ("YEAR", "year") if column in df.columns), None)
+    month_column = next((column for column in ("MONTH", "month") if column in df.columns), None)
+    if year_column and month_column:
+        result = df.copy()
+        result["transaction_date"] = pd.to_datetime(
+            dict(year=result[year_column], month=result[month_column], day=1),
+            errors="coerce",
+        )
+        return result
+
+    return df
 
 
 def check_thresholds(metrics: dict[str, float], rules: dict[str, dict[str, float]]) -> list[dict[str, object]]:
@@ -233,17 +251,17 @@ def _resolve_column(df: pd.DataFrame, candidates: tuple[str, ...], kind: str) ->
 
 def _prepare_time_series(df: pd.DataFrame) -> tuple[pd.DataFrame, str, str, str]:
     """Normalize the input into a dated series with a numeric value column."""
-    result = df.copy()
+    result = _coerce_warehouse_date_frame(df.copy())
     date_column = _resolve_column(result, DATE_CANDIDATES, "date")
     value_column = _resolve_column(result, VALUE_CANDIDATES, "value")
-    count_column = _resolve_column(result, COUNT_CANDIDATES, "count")
+    count_column = next((column for column in COUNT_CANDIDATES if column in result.columns), None)
 
     result[date_column] = pd.to_datetime(result[date_column], errors="coerce")
     result = result.dropna(subset=[date_column]).sort_values(date_column)
     result[value_column] = pd.to_numeric(result[value_column], errors="coerce")
     result = result.dropna(subset=[value_column])
 
-    return result, date_column, value_column, count_column
+    return result, date_column, value_column, count_column or value_column
 
 
 def build_time_series_metrics(df: pd.DataFrame) -> dict[str, object]:

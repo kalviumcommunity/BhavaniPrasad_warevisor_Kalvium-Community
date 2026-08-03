@@ -16,7 +16,7 @@ from scipy import stats
 from scipy.signal import find_peaks
 
 
-DEFAULT_INPUT_FILE = Path("data/raw/sample.csv")
+DEFAULT_INPUT_FILE = Path("data/raw/Warehouse_and_Retail_Sales.csv")
 DEFAULT_OUTPUT_DIR = Path("output")
 DEFAULT_DISTRIBUTION_PLOT = DEFAULT_OUTPUT_DIR / "revenue_distribution.png"
 DEFAULT_SEGMENT_PLOT = DEFAULT_OUTPUT_DIR / "revenue_segment_comparison.png"
