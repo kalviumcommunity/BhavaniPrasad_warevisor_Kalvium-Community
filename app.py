@@ -119,47 +119,122 @@ elif page == "Data Explorer":
             
         st.success(f"Loaded: {uploaded_file.name} ({len(df)} rows, {len(df.columns)} columns)")
 
+        # Convert obvious date columns to datetime
+        for c in df.columns:
+            if 'date' in c.lower() or 'time' in c.lower():
+                try:
+                    df[c] = pd.to_datetime(df[c])
+                except:
+                    pass
+
+        # Identify columns for filters dynamically
+        date_cols = df.select_dtypes(include=['datetime64[ns]', 'datetime64[ns, UTC]']).columns.tolist()
+        date_col = date_cols[0] if date_cols else None
+        
+        cat_cols = df.select_dtypes(include=['object', 'category']).columns.tolist()
+        cat_col = next((c for c in cat_cols if 'segment' in c.lower()), None) or \
+                  next((c for c in cat_cols if 'region' in c.lower()), None) or \
+                  (cat_cols[0] if cat_cols else None)
+
+        num_cols = df.select_dtypes(include=['number']).columns.tolist()
+        num_col = next((c for c in num_cols if 'revenue' in c.lower()), None) or \
+                  next((c for c in num_cols if 'amount' in c.lower()), None) or \
+                  (num_cols[0] if num_cols else None)
+
+        # Filters Sidebar
+        st.sidebar.header("Filters")
+        
+        # Task 5: Implement Filter Reset
+        if st.sidebar.button("Reset Filters"):
+            st.rerun()
+
+        filtered_df = df.copy()
+
+        # Task 1 & 2 & 3: Widgets with Meaningful Defaults
+        if date_col:
+            min_date, max_date = filtered_df[date_col].min(), filtered_df[date_col].max()
+            if pd.notnull(min_date) and pd.notnull(max_date):
+                date_range = st.sidebar.date_input(
+                    f"Date Range ({date_col})",
+                    value=(min_date.date(), max_date.date())
+                )
+                if len(date_range) == 2:
+                    filtered_df = filtered_df[
+                        (filtered_df[date_col].dt.date >= date_range[0]) & 
+                        (filtered_df[date_col].dt.date <= date_range[1])
+                    ]
+
+        if cat_col:
+            all_segments = filtered_df[cat_col].dropna().unique().tolist()
+            if all_segments:
+                selected_segments = st.sidebar.multiselect(
+                    f"Segments ({cat_col})", 
+                    options=all_segments, 
+                    default=all_segments
+                )
+                filtered_df = filtered_df[filtered_df[cat_col].isin(selected_segments)]
+
+        if num_col:
+            min_val, max_val = float(filtered_df[num_col].min()), float(filtered_df[num_col].max())
+            if pd.notnull(min_val) and pd.notnull(max_val) and min_val < max_val:
+                selected_range = st.sidebar.slider(
+                    f"Value Range ({num_col})",
+                    min_value=min_val,
+                    max_value=max_val,
+                    value=(min_val, max_val)
+                )
+                filtered_df = filtered_df[
+                    (filtered_df[num_col] >= selected_range[0]) & 
+                    (filtered_df[num_col] <= selected_range[1])
+                ]
+
+        # Task 4: Handle Empty Filter Combinations
+        if len(filtered_df) == 0:
+            st.warning("No data matches the current filters. Try broadening your selection.")
+            st.stop()
+
         st.divider()
 
-        # Task 2: Display Automatic Preview
+        # Display Automatic Preview (wired to filtered_df)
         st.header("Dataset Preview")
+        st.write(f"Showing **{len(filtered_df):,}** of **{len(df):,}** records")
 
         col1, col2, col3 = st.columns(3)
         with col1:
-            st.metric("Rows", f"{len(df):,}")
+            st.metric("Rows", f"{len(filtered_df):,}")
         with col2:
-            st.metric("Columns", str(len(df.columns)))
+            st.metric("Columns", str(len(filtered_df.columns)))
         with col3:
-            null_pct = (df.isnull().sum().sum() / (df.shape[0] * df.shape[1]) * 100) if not df.empty else 0
+            null_pct = (filtered_df.isnull().sum().sum() / (filtered_df.shape[0] * filtered_df.shape[1]) * 100) if not filtered_df.empty else 0
             st.metric("Null %", f"{null_pct:.1f}%")
 
         st.subheader("First 10 Rows")
-        st.dataframe(df.head(10), use_container_width=True)
+        st.dataframe(filtered_df.head(10), use_container_width=True)
 
         st.subheader("Column Summary")
         summary = pd.DataFrame({
-            "Column": df.columns,
-            "Type": df.dtypes.astype(str).values,
-            "Non-Null": df.notnull().sum().values,
-            "Null Count": df.isnull().sum().values,
-            "Null %": (df.isnull().sum() / len(df) * 100).round(1).values
+            "Column": filtered_df.columns,
+            "Type": filtered_df.dtypes.astype(str).values,
+            "Non-Null": filtered_df.notnull().sum().values,
+            "Null Count": filtered_df.isnull().sum().values,
+            "Null %": (filtered_df.isnull().sum() / len(filtered_df) * 100).round(1).values
         })
         st.dataframe(summary, use_container_width=True)
 
         st.divider()
 
-        # Task 3: Display Basic Statistics
+        # Display Basic Statistics (wired to filtered_df)
         st.header("Descriptive Statistics")
-        st.dataframe(df.describe(), use_container_width=True)
+        st.dataframe(filtered_df.describe(), use_container_width=True)
 
         st.divider()
 
-        # Task 5: Ensure Data Is Usable Downstream (Visualization)
+        # Ensure Data Is Usable Downstream (Visualization, wired to filtered_df)
         st.header("Quick Exploration")
-        numeric_cols = df.select_dtypes(include="number").columns.tolist()
-        if numeric_cols:
-            selected_col = st.selectbox("Select a numeric column to visualise distribution", numeric_cols)
-            st.bar_chart(df[selected_col].value_counts().head(20))
+        numeric_cols_filt = filtered_df.select_dtypes(include="number").columns.tolist()
+        if numeric_cols_filt:
+            selected_col = st.selectbox("Select a numeric column to visualise distribution", numeric_cols_filt)
+            st.bar_chart(filtered_df[selected_col].value_counts().head(20))
         else:
             st.info("No numeric columns available for visualization.")
 
