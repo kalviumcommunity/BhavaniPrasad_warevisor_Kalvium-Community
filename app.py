@@ -167,16 +167,23 @@ elif page == "Data Explorer":
     st.title("Data Explorer")
     st.write("Upload your dataset to explore, clean, and visualize the data automatically.")
 
+    # Task 3: Apply @st.cache_data to Data Loading
+    @st.cache_data
+    def load_data(file_bytes, file_name):
+        import io
+        if file_name.endswith(".csv"):
+            return pd.read_csv(io.BytesIO(file_bytes))
+        elif file_name.endswith(".json"):
+            return pd.read_json(io.BytesIO(file_bytes))
+        return None
+
     # Task 1 & Task 4: File Upload and Error Handling
     uploaded_file = st.file_uploader("Upload your dataset", type=["csv", "json"])
 
     if uploaded_file is not None:
         try:
-            if uploaded_file.name.endswith(".csv"):
-                df = pd.read_csv(uploaded_file)
-            elif uploaded_file.name.endswith(".json"):
-                df = pd.read_json(uploaded_file)
-            else:
+            df = load_data(uploaded_file.getvalue(), uploaded_file.name)
+            if df is None:
                 st.error("Unsupported file type.")
                 st.stop()
 
@@ -258,55 +265,73 @@ elif page == "Data Explorer":
                     (filtered_df[num_col] <= selected_range[1])
                 ]
 
-        # Task 4: Handle Empty Filter Combinations
+        # Task 4: Handle Empty Filtered Results
         if len(filtered_df) == 0:
-            st.warning("No data matches the current filters. Try broadening your selection.")
+            st.warning("No data matches current filters. Broaden your selection.")
             st.stop()
 
         st.divider()
 
+        # Task 5: Avoid Hardcoded Data
+        # Dynamic mapping for required fields to avoid hardcoded column errors
+        # Fallback to defaults if specific names aren't found
+        cust_col = next((c for c in filtered_df.columns if 'customer' in c.lower()), filtered_df.columns[0])
+        
         # Display Automatic Preview (wired to filtered_df)
         st.header("Dataset Preview")
         st.write(f"Showing **{len(filtered_df):,}** of **{len(df):,}** records")
 
-        col1, col2, col3 = st.columns(3)
+        # Task 1: Display Five Reactive KPI Metrics
+        total_revenue = filtered_df[num_col].sum() if num_col else 0
+        avg_order = filtered_df[num_col].mean() if num_col else 0
+        row_count = len(filtered_df)
+        unique_customers = filtered_df[cust_col].nunique() if cust_col else 0
+        null_pct = (filtered_df.isnull().sum().sum() / (filtered_df.shape[0] * filtered_df.shape[1]) * 100) if not filtered_df.empty else 0
+
+        col1, col2, col3, col4, col5 = st.columns(5)
         with col1:
-            st.metric("Rows", f"{len(filtered_df):,}")
+            st.metric("Revenue", f"${total_revenue:,.0f}")
         with col2:
-            st.metric("Columns", str(len(filtered_df.columns)))
+            st.metric("Avg Order", f"${avg_order:,.0f}")
         with col3:
-            null_pct = (filtered_df.isnull().sum().sum() / (filtered_df.shape[0] * filtered_df.shape[1]) * 100) if not filtered_df.empty else 0
-            st.metric("Null %", f"{null_pct:.1f}%")
+            st.metric("Records", f"{row_count:,}")
+        with col4:
+            st.metric("Customers", f"{unique_customers:,}")
+        with col5:
+            st.metric("Quality", f"{100 - null_pct:.1f}%")
 
         st.subheader("First 10 Rows")
         st.dataframe(filtered_df.head(10), use_container_width=True)
 
-        st.subheader("Column Summary")
-        summary = pd.DataFrame({
-            "Column": filtered_df.columns,
-            "Type": filtered_df.dtypes.astype(str).values,
-            "Non-Null": filtered_df.notnull().sum().values,
-            "Null Count": filtered_df.isnull().sum().values,
-            "Null %": (filtered_df.isnull().sum() / len(filtered_df) * 100).round(1).values
-        })
-        st.dataframe(summary, use_container_width=True)
-
         st.divider()
 
-        # Display Basic Statistics (wired to filtered_df)
-        st.header("Descriptive Statistics")
-        st.dataframe(filtered_df.describe(), use_container_width=True)
-
-        st.divider()
-
-        # Ensure Data Is Usable Downstream (Visualization, wired to filtered_df)
-        st.header("Quick Exploration")
-        numeric_cols_filt = filtered_df.select_dtypes(include="number").columns.tolist()
-        if numeric_cols_filt:
-            selected_col = st.selectbox("Select a numeric column to visualise distribution", numeric_cols_filt)
-            st.bar_chart(filtered_df[selected_col].value_counts().head(20))
+        # Task 2: Include Three Chart Types
+        st.header("Visualizations")
+        
+        # Chart 1: Line chart (trend)
+        if date_col and num_col:
+            st.subheader(f"{num_col.title()} Over Time")
+            trend = filtered_df.groupby(date_col)[num_col].sum().reset_index()
+            st.line_chart(trend.set_index(date_col))
         else:
-            st.info("No numeric columns available for visualization.")
+            st.info("Date and Numeric columns required for Trend chart.")
+            
+        # Chart 2: Bar chart (comparison)
+        if cat_col and num_col:
+            st.subheader(f"{num_col.title()} by {cat_col.title()}")
+            seg = filtered_df.groupby(cat_col)[num_col].sum().reset_index()
+            st.bar_chart(seg.set_index(cat_col))
+        else:
+            st.info("Categorical and Numeric columns required for Bar chart.")
+            
+        # Chart 3: Plotly histogram (distribution)
+        if num_col:
+            st.subheader(f"{num_col.title()} Distribution")
+            import plotly.express as px
+            fig = px.histogram(filtered_df, x=num_col, nbins=30)
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.info("Numeric column required for Histogram.")
 
     else:
         st.info("Upload a CSV or JSON file to begin.")
