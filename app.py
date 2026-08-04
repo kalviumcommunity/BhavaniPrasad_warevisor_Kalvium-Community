@@ -335,3 +335,56 @@ elif page == "Data Explorer":
 
     else:
         st.info("Upload a CSV or JSON file to begin.")
+
+elif page == "Workflow":
+    st.title("Multi-Step Analysis Workflow")
+    
+    # Task 5: Document Session State Usage
+    # "selected_segment" - stores the user's segment choice from Step 1
+    # so it survives reruns when the user interacts with Step 2 widgets.
+    
+    # "workflow_step" - tracks which step the user has completed.
+    # Prevents Step 2 from displaying before Step 1 is confirmed.
+    
+    # "analysis_result" - caches the computation from Step 2 so
+    # it does not recompute when unrelated widgets are changed.
+
+    # Task 1 & Task 2: Persist Three Values & Safely Initialise
+    if "selected_segment" not in st.session_state:
+        st.session_state["selected_segment"] = "All"
+    if "workflow_step" not in st.session_state:
+        st.session_state["workflow_step"] = 1
+    if "analysis_result" not in st.session_state:
+        st.session_state["analysis_result"] = None
+
+    # Task 4: Implement Session State Reset
+    if st.sidebar.button("Reset Workflow"):
+        for key in ["selected_segment", "workflow_step", "analysis_result"]:
+            if key in st.session_state:
+                del st.session_state[key]
+        st.rerun()
+
+    # Task 3: Build a Multi-Step Workflow
+    # Step 1
+    st.header("Step 1: Select Segment")
+    segment = st.selectbox("Segment", ["All", "Enterprise", "Mid-Market", "SMB"])
+    if st.button("Confirm Segment"):
+        st.session_state["selected_segment"] = segment
+        st.session_state["workflow_step"] = 2
+        st.rerun()
+
+    # Step 2 (only if step 1 complete)
+    if st.session_state["workflow_step"] >= 2:
+        st.header("Step 2: Analysis")
+        chosen = st.session_state["selected_segment"]
+        st.write("Analysing: " + chosen)
+        
+        # Interactive widget to prove session state persistence
+        analysis_type = st.radio("Select Analysis Type", ["Basic", "Deep Dive"])
+        
+        if st.button("Run Analysis"):
+            # Compute and display results for chosen segment
+            st.session_state["analysis_result"] = f"Completed {analysis_type} analysis for {chosen} segment."
+            
+        if st.session_state["analysis_result"]:
+            st.success(st.session_state["analysis_result"])
