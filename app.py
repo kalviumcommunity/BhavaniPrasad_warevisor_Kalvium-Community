@@ -2,16 +2,20 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+import os
+from pathlib import Path
 
-# Configure page layout
+from scripts.db_connect import get_engine, authenticate_user, test_connection
+
+# Configure Streamlit page layout
 st.set_page_config(
-    page_title="WareVisor - Manager Dashboard",
+    page_title="WareVisor - Warehouse & Retail Portal",
     page_icon="📦",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# Custom Styling for Manager Dashboard matching design system
+# Custom Glassmorphism / Modern Styling for Manager & Product Sender Portal
 st.markdown("""
 <style>
     .main .block-container {
@@ -30,45 +34,94 @@ st.markdown("""
         font-weight: 700;
         color: #0f172a;
     }
-    .badge-banner {
+    .badge-manager {
         background: linear-gradient(90deg, #1e3a8a, #2563eb);
         color: white;
-        padding: 4px 12px;
+        padding: 6px 14px;
         border-radius: 20px;
-        font-size: 12px;
-        font-weight: 600;
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
         text-transform: uppercase;
         display: inline-block;
-        margin-bottom: 8px;
+        margin-bottom: 12px;
+    }
+    .badge-sender {
+        background: linear-gradient(90deg, #065f46, #10b981);
+        color: white;
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        display: inline-block;
+        margin-bottom: 12px;
     }
     .wh-card {
         background-color: #f8fafc;
-        border: 1px solid #f1f5f9;
+        border: 1px solid #e2e8f0;
         border-radius: 10px;
-        padding: 12px 16px;
-        margin-bottom: 10px;
+        padding: 16px;
+        margin-bottom: 12px;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# Sidebar Navigation (Role 1: Manager)
+# Helper function to load data from PostgreSQL or local CSV fallback
+@st.cache_data(ttl=60)
+def load_sales_data():
+    try:
+        engine = get_engine()
+        query = "SELECT record_id, year, month, supplier, item_code, item_description, item_type, retail_sales, retail_transfers, warehouse_sales FROM warehouse_retail_sales LIMIT 50000;"
+        df = pd.read_sql(query, engine)
+        if not df.empty:
+            return df, "PostgreSQL Database (Supabase)"
+    except Exception as e:
+        pass
+
+    # Fallback to cleaned CSV if database connection is offline
+    csv_path = Path("data/processed/warehouse_retail_sales_cleaned.csv")
+    if csv_path.exists():
+        df = pd.read_csv(csv_path, nrows=50000)
+        df.columns = [c.lower().replace(" ", "_") for c in df.columns]
+        return df, "Local Cleaned CSV Dataset"
+
+    return pd.DataFrame(), "No Data"
+
+# Session State Initialization for Role-Based Login
+if "authenticated" not in st.session_state:
+    st.session_state["authenticated"] = False
+if "user_role" not in st.session_state:
+    st.session_state["user_role"] = None
+if "user_name" not in st.session_state:
+    st.session_state["user_name"] = None
+if "username" not in st.session_state:
+    st.session_state["username"] = None
+
+# Sidebar Authentication Section
 st.sidebar.markdown("### 📦 WareVisor")
-st.sidebar.caption("RetailStock Manager Portal")
+st.sidebar.caption("Enterprise Warehouse & Retail Management")
 st.sidebar.divider()
 
-page = st.sidebar.radio(
-    "Navigation",
-    [
-        "📊 Dashboard",
-        "📦 All Products",
-        "➕ Add Product",
-        "🚚 Stock Movements",
-        "📈 Reports",
-        "🔔 Alerts",
-        "👥 Users",
-        "⚙️ Settings"
-    ]
-)
+if not st.session_state["authenticated"]:
+    st.sidebar.subheader("🔑 Role-Based Login")
+    login_tab1, login_tab2 = st.sidebar.tabs(["Quick Demo Login", "DB Credential Login"])
+
+    with login_tab1:
+        role_choice = st.radio("Select Role", ["Manager (Central Admin)", "Product Sender (Supplier)"])
+        if st.button("Log In as Demo Role", use_container_width=True):
+            if "Manager" in role_choice:
+                st.session_state["authenticated"] = True
+                st.session_state["user_role"] = "manager"
+                st.session_state["user_name"] = "Central Warehouse Manager"
+                st.session_state["username"] = "manager"
+            else:
+                st.session_state["authenticated"] = True
+                st.session_state["user_role"] = "product_sender"
+                st.session_state["user_name"] = "Product Dispatch Sender"
+                st.session_state["username"] = "sender"
+            st.rerun()
 
 st.sidebar.divider()
 st.sidebar.info("Logged in as: **Manager** (Central Admin)")
@@ -187,89 +240,56 @@ elif page == "Data Explorer":
                 st.error("Unsupported file type.")
                 st.stop()
 
-            if len(df) == 0:
-                st.warning("Uploaded file is empty.")
-                st.stop()
-        except Exception:
-            st.error("Could not read this file. Check the format and try again.")
-            st.stop()
-            
-        st.success(f"Loaded: {uploaded_file.name} ({len(df)} rows, {len(df.columns)} columns)")
+    st.title("📦 WareVisor Portal")
+    st.info("Please log in from the sidebar using **Quick Demo Login** or **DB Credential Login**.")
+    st.stop()
 
-        # Convert obvious date columns to datetime
-        for c in df.columns:
-            if 'date' in c.lower() or 'time' in c.lower():
-                try:
-                    df[c] = pd.to_datetime(df[c])
-                except:
-                    pass
+# Logged-In User Information in Sidebar
+role_name = "Manager (Admin)" if st.session_state["user_role"] == "manager" else "Product Sender"
+st.sidebar.success(f"Logged in as: **{st.session_state['user_name']}**\n\nRole: **{role_name}**")
 
-        # Identify columns for filters dynamically
-        date_cols = df.select_dtypes(include=['datetime64[ns]', 'datetime64[ns, UTC]']).columns.tolist()
-        date_col = date_cols[0] if date_cols else None
-        
-        cat_cols = df.select_dtypes(include=['object', 'category']).columns.tolist()
-        cat_col = next((c for c in cat_cols if 'segment' in c.lower()), None) or \
-                  next((c for c in cat_cols if 'region' in c.lower()), None) or \
-                  (cat_cols[0] if cat_cols else None)
-
-        num_cols = df.select_dtypes(include=['number']).columns.tolist()
-        num_col = next((c for c in num_cols if 'revenue' in c.lower()), None) or \
-                  next((c for c in num_cols if 'amount' in c.lower()), None) or \
-                  (num_cols[0] if num_cols else None)
-
-        # Filters Sidebar
-        st.sidebar.header("Filters")
-        
-        # Task 5: Implement Filter Reset
-        if st.sidebar.button("Reset Filters"):
-            st.rerun()
-
-        filtered_df = df.copy()
-
-        # Task 1 & 2 & 3: Widgets with Meaningful Defaults
-        if date_col:
-            min_date, max_date = filtered_df[date_col].min(), filtered_df[date_col].max()
-            if pd.notnull(min_date) and pd.notnull(max_date):
-                date_range = st.sidebar.date_input(
-                    f"Date Range ({date_col})",
-                    value=(min_date.date(), max_date.date())
-                )
-                if len(date_range) == 2:
-                    filtered_df = filtered_df[
-                        (filtered_df[date_col].dt.date >= date_range[0]) & 
-                        (filtered_df[date_col].dt.date <= date_range[1])
-                    ]
-
-        if cat_col:
-            all_segments = filtered_df[cat_col].dropna().unique().tolist()
-            if all_segments:
-                selected_segments = st.sidebar.multiselect(
-                    f"Segments ({cat_col})", 
-                    options=all_segments, 
-                    default=all_segments
-                )
-                filtered_df = filtered_df[filtered_df[cat_col].isin(selected_segments)]
-
-        if num_col:
-            min_val, max_val = float(filtered_df[num_col].min()), float(filtered_df[num_col].max())
-            if pd.notnull(min_val) and pd.notnull(max_val) and min_val < max_val:
-                selected_range = st.sidebar.slider(
-                    f"Value Range ({num_col})",
-                    min_value=min_val,
-                    max_value=max_val,
-                    value=(min_val, max_val)
-                )
-                filtered_df = filtered_df[
-                    (filtered_df[num_col] >= selected_range[0]) & 
-                    (filtered_df[num_col] <= selected_range[1])
-                ]
+if st.sidebar.button("Logout", use_container_width=True):
+    st.session_state["authenticated"] = False
+    st.session_state["user_role"] = None
+    st.session_state["user_name"] = None
+    st.rerun()
 
         # Task 4: Handle Empty Filtered Results
         if len(filtered_df) == 0:
             st.warning("No data matches current filters. Broaden your selection.")
             st.stop()
 
+# Navigation per Role
+if st.session_state["user_role"] == "manager":
+    nav_options = [
+        "📊 Manager Dashboard",
+        "📦 All Inventory Items",
+        "➕ Add/Update Items",
+        "👥 Role & User Management",
+        "⚙️ Database Settings"
+    ]
+else: # product_sender
+    nav_options = [
+        "🚚 Product Sender Portal",
+        "📦 My Dispatched Items",
+        "➕ Submit New Shipment Item",
+        "⚙️ Settings"
+    ]
+
+page = st.sidebar.radio("Navigation", nav_options)
+
+# Load dataset
+df_sales, data_source = load_sales_data()
+st.sidebar.caption(f"Data Source: **{data_source}**")
+
+# ---------------------------------------------------------
+# MANAGER ROLE PAGES
+# ---------------------------------------------------------
+if st.session_state["user_role"] == "manager":
+    if page == "📊 Manager Dashboard":
+        st.markdown('<span class="badge-manager">ROLE: MANAGER (CENTRAL ADMIN)</span>', unsafe_allow_html=True)
+        st.title("Manager Analytics & Stock Overview")
+        st.caption("Real-time oversight of warehouse sales, transfers, and inventory distribution")
         st.divider()
 
         # Task 5: Avoid Hardcoded Data

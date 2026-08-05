@@ -42,10 +42,24 @@ def _resolve_input_path(source_path: str | Path | None = None) -> Path:
     raise FileNotFoundError("Could not locate Warehouse_and_Retail_Sales.csv")
 
 
-def load_retail_sales_data(source_path: str | Path | None = None) -> pd.DataFrame:
-    """Load the retail sales CSV from the workspace or the provided path."""
+def load_retail_sales_data(source_path: str | Path | None = None, use_db_if_available: bool = True) -> pd.DataFrame:
+    """Load retail sales dataset from PostgreSQL database (warehouse_retail_sales) or fallback to CSV."""
+    if source_path is None and use_db_if_available:
+        try:
+            from scripts.db_connect import get_engine
+            engine = get_engine()
+            query = "SELECT year, month, supplier, item_code, item_description, item_type, retail_sales, retail_transfers, warehouse_sales FROM warehouse_retail_sales;"
+            df = pd.read_sql(query, engine)
+            if not df.empty:
+                # Standardize uppercase column names if needed
+                df.columns = [c.upper().replace("_", " ") if c in ["year", "month", "supplier", "item_code", "item_description", "item_type", "retail_sales", "retail_transfers", "warehouse_sales"] else c for c in df.columns]
+                return df
+        except Exception as err:
+            pass
+
     path = _resolve_input_path(source_path)
     return pd.read_csv(path)
+
 
 
 def _normalize_text_series(series: pd.Series, title_case: bool = False, upper_case: bool = False) -> pd.Series:

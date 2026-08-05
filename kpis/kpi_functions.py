@@ -208,21 +208,31 @@ def load_targets(path: str | Path) -> Dict[str, Dict[str, float]]:
 
 
 if __name__ == "__main__":
-    # Example run: attempt to load the warehouse sales dataset in the repo if present.
-    repo_root = Path(__file__).resolve().parents[1]
-    warehouse = repo_root / "data" / "raw" / "Warehouse_and_Retail_Sales.csv"
-    if warehouse.exists():
-        df = pd.read_csv(warehouse, skipinitialspace=True)
+    # Attempt to load the dataset from PostgreSQL database or local CSV
+    df = None
+    try:
+        from scripts.db_connect import get_engine
+        engine = get_engine()
+        df = pd.read_sql("SELECT * FROM warehouse_retail_sales LIMIT 1000", engine)
+        print("Loaded dataset from PostgreSQL database (warehouse_retail_sales).")
+    except Exception:
+        repo_root = Path(__file__).resolve().parents[1]
+        warehouse = repo_root / "data" / "raw" / "Warehouse_and_Retail_Sales.csv"
+        if warehouse.exists():
+            df = pd.read_csv(warehouse, skipinitialspace=True)
+            print("Loaded dataset from local CSV file.")
+
+    if df is not None:
         try:
-            print("Warehouse dataset loaded for KPI helpers.")
             if {"customer_id", "transaction_date", "amount"}.issubset(df.columns):
                 mau = calculate_mau(df)
                 rpc = calculate_revenue_per_customer(df)
                 churn = calculate_churn_rate(df)
                 print(mau, rpc, churn)
             else:
-                print("This KPI module expects customer-level columns such as customer_id, transaction_date, and amount.")
+                print("KPI helpers loaded successfully. Expects customer-level columns for calculation.")
         except Exception as e:
             print("Example run failed:", e)
     else:
         print("No warehouse data found. Import functions and call them with your DataFrame.")
+

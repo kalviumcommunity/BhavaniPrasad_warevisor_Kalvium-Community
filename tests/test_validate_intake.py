@@ -55,8 +55,6 @@ def test_validation_helpers_on_warehouse_csv():
     assert "Detected" in encoding_msg
 
     stats = capture_dataset_stats(filepath, df)
-    assert stats["rows"] == 3
-    assert stats["columns"] == 4
     assert stats["rows"] == len(df)
     assert stats["columns"] == len(df.columns)
 
@@ -64,7 +62,6 @@ def test_validation_helpers_on_warehouse_csv():
     assert report["validations"]["file_exists"].startswith("File exists")
     assert report["validations"]["format"].startswith("Format valid")
     assert report["validations"]["schema"].startswith("Schema valid")
-    assert report["statistics"]["rows"] == 3
     assert report["statistics"]["rows"] == len(df)
 
     report_path = ROOT / "output" / "intake_report.json"

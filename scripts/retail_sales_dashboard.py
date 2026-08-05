@@ -22,7 +22,7 @@ from scripts.warehouse_retail_pipeline import (
 @st.cache_data(show_spinner=True)
 def load_dashboard_data() -> tuple[pd.DataFrame, dict]:
     """Load, clean, and cache the retail sales dataset for the dashboard."""
-    return prepare_retail_sales_dataset(DEFAULT_CLEANED_OUTPUT.parent.parent / "raw" / "Warehouse_and_Retail_Sales.csv", DEFAULT_CLEANED_OUTPUT, DEFAULT_REPORT_OUTPUT)
+    return prepare_retail_sales_dataset(None, DEFAULT_CLEANED_OUTPUT, DEFAULT_REPORT_OUTPUT)
 
 
 def _format_number(value: float) -> str:

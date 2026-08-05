@@ -144,8 +144,16 @@ def ingest_data(filepath: str | Path) -> pd.DataFrame:
     """
     path = Path(filepath)
 
-    # Read the file based on its extension so the script can support multiple inputs.
     if not path.exists():
+        try:
+            from scripts.db_connect import get_engine
+            engine = get_engine()
+            df = pd.read_sql("SELECT year, month, supplier, item_code, item_description, item_type, retail_sales, retail_transfers, warehouse_sales FROM warehouse_retail_sales LIMIT 1000;", engine)
+            if not df.empty:
+                print(f"[OK] Ingested {len(df)} rows from PostgreSQL database (warehouse_retail_sales)")
+                return df
+        except Exception:
+            pass
         raise FileNotFoundError(f"Input file not found: {path}")
 
     if path.suffix.lower() == ".csv":
@@ -155,9 +163,9 @@ def ingest_data(filepath: str | Path) -> pd.DataFrame:
     else:
         raise ValueError(f"Unsupported file format: {path.suffix}")
 
-    # Keep the ingestion function focused on reading data only.
     print(f"[OK] Ingested {len(df)} rows from {path}")
     return df
+
 
 
 def process_data(df: pd.DataFrame, cleaning_log_path: str | Path = OUTLIER_LOG_FILE) -> pd.DataFrame:
