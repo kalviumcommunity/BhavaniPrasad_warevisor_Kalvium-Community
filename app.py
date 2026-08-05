@@ -123,20 +123,122 @@ if not st.session_state["authenticated"]:
                 st.session_state["username"] = "sender"
             st.rerun()
 
-    with login_tab2:
-        uname_input = st.text_input("Username")
-        pwd_input = st.text_input("Password", type="password")
-        if st.button("Authenticate", use_container_width=True):
-            user_info = authenticate_user(uname_input, pwd_input)
-            if user_info:
-                st.session_state["authenticated"] = True
-                st.session_state["user_role"] = user_info["role"]
-                st.session_state["user_name"] = user_info["full_name"]
-                st.session_state["username"] = user_info["username"]
-                st.sidebar.success(f"Welcome {user_info['full_name']}!")
-                st.rerun()
-            else:
-                st.sidebar.error("Invalid username or password.")
+st.sidebar.divider()
+st.sidebar.info("Logged in as: **Manager** (Central Admin)")
+
+if page == "📊 Dashboard":
+    # Role Banner and Page Title
+    st.markdown('<span class="badge-banner">ROLE 1: MANAGER</span>', unsafe_allow_html=True)
+    st.title("1. Manager Dashboard (Summary)")
+    st.caption("Real-time view of inventory across all warehouses")
+
+    st.markdown("---")
+
+    # 4 KPI Cards Row
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        st.metric(label="Total Products", value="1,248", delta="+4.2% MoM", help="All Warehouses")
+    with col2:
+        st.metric(label="Total Stock", value="45,780", delta="+12.5% MoM", help="All Warehouses")
+    with col3:
+        st.metric(label="Low Stock Products", value="86", delta="Reorder Soon", delta_color="inverse", help="Items needing reorder")
+    with col4:
+        st.metric(label="Out of Stock", value="12", delta="Action Required", delta_color="inverse", help="Critical alert")
+
+    st.write("")
+
+    # 2 Charts Grid
+    chart_col1, chart_col2 = st.columns([2, 1.2])
+
+    with chart_col1:
+        st.subheader("Stock Overview")
+        period = st.selectbox("Select Filter", ["This Year", "This Quarter", "This Month"], key="period_sel")
+        
+        # Stock overview line chart data
+        if period == "This Year":
+            df_trend = pd.DataFrame({
+                "Month": ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug"],
+                "Stock": [28000, 32000, 29000, 37000, 34000, 41000, 43500, 45780]
+            })
+        elif period == "This Quarter":
+            df_trend = pd.DataFrame({
+                "Month": ["May", "Jun", "Jul", "Aug"],
+                "Stock": [34000, 41000, 43500, 45780]
+            })
+        else:
+            df_trend = pd.DataFrame({
+                "Month": ["Week 1", "Week 2", "Week 3", "Week 4"],
+                "Stock": [42000, 43200, 44800, 45780]
+            })
+
+        fig_line = px.line(
+            df_trend, x="Month", y="Stock", markers=True,
+            line_shape="spline", title=f"Stock Trend ({period})"
+        )
+
+elif page == "Trends":
+    # Task 3: Visual Hierarchy - Page Title
+    st.title("Trend Analysis")
+
+    # Task 3: Headers, Subheaders, Dividers
+    st.header("Revenue Trends")
+    st.subheader("Monthly Revenue (Last 12 Months)")
+
+    # Task 2: Columns layout for side-by-side comparison
+    trend_col1, trend_col2 = st.columns(2)
+    with trend_col1:
+        st.subheader("Q1 - Q2 Revenue Performance")
+        st.write("Steady upward trajectory driven by new product launches and increased demand.")
+        st.metric("H1 Total Revenue", "$2.8M", "+14.2%")
+    with trend_col2:
+        st.subheader("Q3 - Q4 Projected Growth")
+        st.write("Seasonal uptick anticipated with expanding enterprise partnerships.")
+        st.metric("H2 Projected Revenue", "$3.1M", "+16.8%")
+
+    st.divider()
+
+    st.header("Customer Metrics")
+    st.subheader("Active Customers Over Time")
+
+    cust_col1, cust_col2 = st.columns(2)
+    with cust_col1:
+        st.metric("Monthly Active Users", "2,150", "+8.4%")
+    with cust_col2:
+        st.metric("Customer Acquisition Cost", "$120", "-5.1%", delta_color="inverse")
+
+    st.divider()
+
+    # Task 2: Expander for trend details
+    with st.expander("Trend Analysis Methodology"):
+        st.write(
+            "Monthly revenue trends are compiled at the end of each billing cycle. "
+            "Growth rates compare current period metrics against prior trailing twelve-month averages. "
+            "Projections account for seasonal baseline variance."
+        )
+
+elif page == "Data Explorer":
+    st.title("Data Explorer")
+    st.write("Upload your dataset to explore, clean, and visualize the data automatically.")
+
+    # Task 3: Apply @st.cache_data to Data Loading
+    @st.cache_data
+    def load_data(file_bytes, file_name):
+        import io
+        if file_name.endswith(".csv"):
+            return pd.read_csv(io.BytesIO(file_bytes))
+        elif file_name.endswith(".json"):
+            return pd.read_json(io.BytesIO(file_bytes))
+        return None
+
+    # Task 1 & Task 4: File Upload and Error Handling
+    uploaded_file = st.file_uploader("Upload your dataset", type=["csv", "json"])
+
+    if uploaded_file is not None:
+        try:
+            df = load_data(uploaded_file.getvalue(), uploaded_file.name)
+            if df is None:
+                st.error("Unsupported file type.")
+                st.stop()
 
     st.title("📦 WareVisor Portal")
     st.info("Please log in from the sidebar using **Quick Demo Login** or **DB Credential Login**.")
@@ -152,7 +254,10 @@ if st.sidebar.button("Logout", use_container_width=True):
     st.session_state["user_name"] = None
     st.rerun()
 
-st.sidebar.divider()
+        # Task 4: Handle Empty Filtered Results
+        if len(filtered_df) == 0:
+            st.warning("No data matches current filters. Broaden your selection.")
+            st.stop()
 
 # Navigation per Role
 if st.session_state["user_role"] == "manager":
@@ -187,225 +292,119 @@ if st.session_state["user_role"] == "manager":
         st.caption("Real-time oversight of warehouse sales, transfers, and inventory distribution")
         st.divider()
 
-        # KPI Metrics Row
-        col1, col2, col3, col4 = st.columns(4)
-        total_records = len(df_sales)
-        total_retail = df_sales["retail_sales"].sum() if "retail_sales" in df_sales else 0
-        total_wh_sales = df_sales["warehouse_sales"].sum() if "warehouse_sales" in df_sales else 0
-        total_suppliers = df_sales["supplier"].nunique() if "supplier" in df_sales else 0
+        # Task 5: Avoid Hardcoded Data
+        # Dynamic mapping for required fields to avoid hardcoded column errors
+        # Fallback to defaults if specific names aren't found
+        cust_col = next((c for c in filtered_df.columns if 'customer' in c.lower()), filtered_df.columns[0])
+        
+        # Display Automatic Preview (wired to filtered_df)
+        st.header("Dataset Preview")
+        st.write(f"Showing **{len(filtered_df):,}** of **{len(df):,}** records")
 
+        # Task 1: Display Five Reactive KPI Metrics
+        total_revenue = filtered_df[num_col].sum() if num_col else 0
+        avg_order = filtered_df[num_col].mean() if num_col else 0
+        row_count = len(filtered_df)
+        unique_customers = filtered_df[cust_col].nunique() if cust_col else 0
+        null_pct = (filtered_df.isnull().sum().sum() / (filtered_df.shape[0] * filtered_df.shape[1]) * 100) if not filtered_df.empty else 0
+
+        col1, col2, col3, col4, col5 = st.columns(5)
         with col1:
-            st.metric("Total Items / Records", f"{total_records:,}")
+            st.metric("Revenue", f"${total_revenue:,.0f}")
         with col2:
-            st.metric("Total Retail Sales ($)", f"${total_retail:,.2f}")
+            st.metric("Avg Order", f"${avg_order:,.0f}")
         with col3:
-            st.metric("Total Warehouse Sales ($)", f"${total_wh_sales:,.2f}")
+            st.metric("Records", f"{row_count:,}")
         with col4:
-            st.metric("Unique Suppliers", f"{total_suppliers:,}")
+            st.metric("Customers", f"{unique_customers:,}")
+        with col5:
+            st.metric("Quality", f"{100 - null_pct:.1f}%")
+
+        st.subheader("First 10 Rows")
+        st.dataframe(filtered_df.head(10), use_container_width=True)
 
         st.divider()
 
-        # Charts Section
-        chart_col1, chart_col2 = st.columns([2, 1])
-
-        with chart_col1:
-            st.subheader("Sales Performance by Item Type")
-            if not df_sales.empty and "item_type" in df_sales:
-                type_sales = df_sales.groupby("item_type")[["retail_sales", "warehouse_sales"]].sum().reset_index()
-                fig_bar = px.bar(
-                    type_sales, x="item_type", y=["retail_sales", "warehouse_sales"],
-                    barmode="group", title="Retail vs Warehouse Sales by Item Category",
-                    color_discrete_sequence=["#2563eb", "#10b981"]
-                )
-                st.plotly_chart(fig_bar, use_container_width=True)
-            else:
-                st.info("No sales data available for chart rendering.")
-
-        with chart_col2:
-            st.subheader("Top Suppliers Breakdown")
-            if not df_sales.empty and "supplier" in df_sales:
-                top_supp = df_sales.groupby("supplier")["warehouse_sales"].sum().nlargest(5).reset_index()
-                fig_pie = px.pie(top_supp, names="supplier", values="warehouse_sales", hole=0.4, title="Top 5 Suppliers")
-                st.plotly_chart(fig_pie, use_container_width=True)
-            else:
-                st.info("No supplier data available.")
-
-    elif page == "📦 All Inventory Items":
-        st.markdown('<span class="badge-manager">ROLE: MANAGER</span>', unsafe_allow_html=True)
-        st.title("Warehouse Item Storing Database")
-        st.caption("Search, filter, and inspect warehouse item records in PostgreSQL")
-        st.divider()
-
-        if not df_sales.empty:
-            # Filters
-            f_col1, f_col2, f_col3 = st.columns(3)
-            with f_col1:
-                item_types = ["All"] + sorted(df_sales["item_type"].dropna().unique().tolist())
-                sel_type = st.selectbox("Filter by Item Type", item_types)
-            with f_col2:
-                suppliers = ["All"] + sorted(df_sales["supplier"].dropna().unique().tolist())[:100]
-                sel_supp = st.selectbox("Filter by Supplier", suppliers)
-            with f_col3:
-                search_kw = st.text_input("Search Description / Code")
-
-            filtered_df = df_sales.copy()
-            if sel_type != "All":
-                filtered_df = filtered_df[filtered_df["item_type"] == sel_type]
-            if sel_supp != "All":
-                filtered_df = filtered_df[filtered_df["supplier"] == sel_supp]
-            if search_kw:
-                filtered_df = filtered_df[
-                    filtered_df["item_description"].str.contains(search_kw, case=False, na=False) |
-                    filtered_df["item_code"].str.contains(search_kw, case=False, na=False)
-                ]
-
-            st.write(f"Showing **{len(filtered_df):,}** matching items")
-            st.dataframe(filtered_df.head(100), use_container_width=True)
+        # Task 2: Include Three Chart Types
+        st.header("Visualizations")
+        
+        # Chart 1: Line chart (trend)
+        if date_col and num_col:
+            st.subheader(f"{num_col.title()} Over Time")
+            trend = filtered_df.groupby(date_col)[num_col].sum().reset_index()
+            st.line_chart(trend.set_index(date_col))
         else:
-            st.warning("No item records found in database.")
-
-    elif page == "➕ Add/Update Items":
-        st.markdown('<span class="badge-manager">ROLE: MANAGER</span>', unsafe_allow_html=True)
-        st.title("Add New Item to PostgreSQL Schema")
-        st.caption("Create new stock items or sales entries directly in PostgreSQL database")
-        st.divider()
-
-        with st.form("add_item_form"):
-            col1, col2 = st.columns(2)
-            with col1:
-                year_in = st.number_input("Year", min_value=2017, max_value=2030, value=2020)
-                month_in = st.number_input("Month", min_value=1, max_value=12, value=1)
-                supplier_in = st.text_input("Supplier Name")
-                item_code_in = st.text_input("Item Code")
-            with col2:
-                item_desc_in = st.text_input("Item Description")
-                item_type_in = st.selectbox("Item Type", ["WINE", "BEER", "LIQUOR", "NON-ALCOHOL", "OTHER"])
-                retail_sales_in = st.number_input("Retail Sales Amount ($)", min_value=0.0, value=0.0)
-                wh_sales_in = st.number_input("Warehouse Sales Amount ($)", min_value=0.0, value=0.0)
-
-            submitted = st.form_submit_button("Save Item to PostgreSQL")
-
-            if submitted:
-                if not supplier_in or not item_code_in or not item_desc_in:
-                    st.error("Please fill in Supplier, Item Code, and Description.")
-                else:
-                    try:
-                        engine = get_engine()
-                        with engine.begin() as conn:
-                            ins_query = text("""
-                                INSERT INTO warehouse_retail_sales 
-                                (year, month, supplier, item_code, item_description, item_type, retail_sales, warehouse_sales)
-                                VALUES (:y, :m, :s, :code, :desc, :type, :rs, :ws)
-                            """)
-                            conn.execute(ins_query, {
-                                "y": year_in, "m": month_in, "s": supplier_in,
-                                "code": item_code_in, "desc": item_desc_in,
-                                "type": item_type_in, "rs": retail_sales_in, "ws": wh_sales_in
-                            })
-                        st.success(f"[OK] Item '{item_code_in}' successfully saved to PostgreSQL database!")
-                        st.cache_data.clear()
-                    except Exception as err:
-                        st.error(f"Error saving item to database: {err}")
-
-    elif page == "👥 Role & User Management":
-        st.markdown('<span class="badge-manager">ROLE: MANAGER</span>', unsafe_allow_html=True)
-        st.title("Role-Based User Management")
-        st.caption("View and manage app accounts for Manager and Product Sender roles")
-        st.divider()
-
-        try:
-            engine = get_engine()
-            users_df = pd.read_sql("SELECT user_id, username, full_name, email, role, status, created_at FROM app_users;", engine)
-            st.subheader("Registered System Users")
-            st.dataframe(users_df, use_container_width=True)
-        except Exception:
-            st.write("Default Demo Roles:")
-            st.table([
-                {"Username": "manager", "Role": "manager", "Full Name": "Central Warehouse Manager", "Access": "Full Admin (SELECT, INSERT, UPDATE, DELETE)"},
-                {"Username": "sender", "Role": "product_sender", "Full Name": "Product Dispatch Sender", "Access": "Item Sender (SELECT, INSERT)"}
-            ])
-
-    elif page == "⚙️ Database Settings":
-        st.markdown('<span class="badge-manager">ROLE: MANAGER</span>', unsafe_allow_html=True)
-        st.title("Supabase PostgreSQL Database Settings")
-        st.divider()
-
-        is_connected = test_connection()
-        if is_connected:
-            st.success("Connected to PostgreSQL Database: db.pbnlrmcohihvmxxaqgmj.supabase.co:5432")
+            st.info("Date and Numeric columns required for Trend chart.")
+            
+        # Chart 2: Bar chart (comparison)
+        if cat_col and num_col:
+            st.subheader(f"{num_col.title()} by {cat_col.title()}")
+            seg = filtered_df.groupby(cat_col)[num_col].sum().reset_index()
+            st.bar_chart(seg.set_index(cat_col))
         else:
-            st.warning("Not connected to PostgreSQL Database. Check POSTGRES_PASSWORD in .env or credentials.")
+            st.info("Categorical and Numeric columns required for Bar chart.")
+            
+        # Chart 3: Plotly histogram (distribution)
+        if num_col:
+            st.subheader(f"{num_col.title()} Distribution")
+            import plotly.express as px
+            fig = px.histogram(filtered_df, x=num_col, nbins=30)
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.info("Numeric column required for Histogram.")
 
-# ---------------------------------------------------------
-# PRODUCT SENDER ROLE PAGES
-# ---------------------------------------------------------
-else:
-    if page == "🚚 Product Sender Portal":
-        st.markdown('<span class="badge-sender">ROLE: PRODUCT SENDER</span>', unsafe_allow_html=True)
-        st.title("Product Sender & Dispatch Portal")
-        st.caption("Submit stock items, send products to warehouse, and track dispatched shipments")
-        st.divider()
+    else:
+        st.info("Upload a CSV or JSON file to begin.")
 
-        s_col1, s_col2 = st.columns(2)
-        with s_col1:
-            st.metric("Logged In Sender", st.session_state["user_name"])
-        with s_col2:
-            st.metric("Dispatched Items Total", f"{len(df_sales):,}" if not df_sales.empty else "0")
+elif page == "Workflow":
+    st.title("Multi-Step Analysis Workflow")
+    
+    # Task 5: Document Session State Usage
+    # "selected_segment" - stores the user's segment choice from Step 1
+    # so it survives reruns when the user interacts with Step 2 widgets.
+    
+    # "workflow_step" - tracks which step the user has completed.
+    # Prevents Step 2 from displaying before Step 1 is confirmed.
+    
+    # "analysis_result" - caches the computation from Step 2 so
+    # it does not recompute when unrelated widgets are changed.
 
-        st.divider()
-        st.subheader("Quick Dispatched Inventory Overview")
-        if not df_sales.empty:
-            st.dataframe(df_sales.head(20), use_container_width=True)
+    # Task 1 & Task 2: Persist Three Values & Safely Initialise
+    if "selected_segment" not in st.session_state:
+        st.session_state["selected_segment"] = "All"
+    if "workflow_step" not in st.session_state:
+        st.session_state["workflow_step"] = 1
+    if "analysis_result" not in st.session_state:
+        st.session_state["analysis_result"] = None
 
-    elif page == "📦 My Dispatched Items":
-        st.markdown('<span class="badge-sender">ROLE: PRODUCT SENDER</span>', unsafe_allow_html=True)
-        st.title("Dispatched Item Catalog")
-        st.divider()
-        if not df_sales.empty:
-            search_sender = st.text_input("Filter Item Code or Description")
-            if search_sender:
-                res = df_sales[df_sales["item_description"].str.contains(search_sender, case=False, na=False)]
-                st.dataframe(res, use_container_width=True)
-            else:
-                st.dataframe(df_sales.head(50), use_container_width=True)
+    # Task 4: Implement Session State Reset
+    if st.sidebar.button("Reset Workflow"):
+        for key in ["selected_segment", "workflow_step", "analysis_result"]:
+            if key in st.session_state:
+                del st.session_state[key]
+        st.rerun()
 
-    elif page == "➕ Submit New Shipment Item":
-        st.markdown('<span class="badge-sender">ROLE: PRODUCT SENDER</span>', unsafe_allow_html=True)
-        st.title("Submit New Shipment Entry")
-        st.caption("Add stock shipment into PostgreSQL warehouse item database")
-        st.divider()
+    # Task 3: Build a Multi-Step Workflow
+    # Step 1
+    st.header("Step 1: Select Segment")
+    segment = st.selectbox("Segment", ["All", "Enterprise", "Mid-Market", "SMB"])
+    if st.button("Confirm Segment"):
+        st.session_state["selected_segment"] = segment
+        st.session_state["workflow_step"] = 2
+        st.rerun()
 
-        with st.form("sender_item_form"):
-            s_supplier = st.text_input("Supplier / Sender Name", value=st.session_state["user_name"])
-            s_code = st.text_input("Item Code (SKU)")
-            s_desc = st.text_input("Item Description")
-            s_type = st.selectbox("Item Category", ["WINE", "BEER", "LIQUOR", "NON-ALCOHOL", "OTHER"])
-            s_qty = st.number_input("Warehouse Sales / Dispatch Quantity", min_value=1.0, value=10.0)
-
-            s_submit = st.form_submit_button("Submit Product Shipment")
-
-            if s_submit:
-                if not s_code or not s_desc:
-                    st.error("Item Code and Description are required.")
-                else:
-                    try:
-                        engine = get_engine()
-                        with engine.begin() as conn:
-                            ins_stmt = text("""
-                                INSERT INTO warehouse_retail_sales 
-                                (year, month, supplier, item_code, item_description, item_type, retail_sales, warehouse_sales)
-                                VALUES (2020, 8, :s, :code, :desc, :type, 0.0, :ws)
-                            """)
-                            conn.execute(ins_stmt, {
-                                "s": s_supplier, "code": s_code,
-                                "desc": s_desc, "type": s_type, "ws": s_qty
-                            })
-                        st.success(f"[OK] Shipment for '{s_desc}' ({s_code}) submitted successfully!")
-                        st.cache_data.clear()
-                    except Exception as err:
-                        st.error(f"Failed to submit shipment: {err}")
-
-    elif page == "⚙️ Settings":
-        st.markdown('<span class="badge-sender">ROLE: PRODUCT SENDER</span>', unsafe_allow_html=True)
-        st.title("Sender Account Settings")
-        st.write(f"Logged in as **{st.session_state['user_name']}** ({st.session_state['username']})")
+    # Step 2 (only if step 1 complete)
+    if st.session_state["workflow_step"] >= 2:
+        st.header("Step 2: Analysis")
+        chosen = st.session_state["selected_segment"]
+        st.write("Analysing: " + chosen)
+        
+        # Interactive widget to prove session state persistence
+        analysis_type = st.radio("Select Analysis Type", ["Basic", "Deep Dive"])
+        
+        if st.button("Run Analysis"):
+            # Compute and display results for chosen segment
+            st.session_state["analysis_result"] = f"Completed {analysis_type} analysis for {chosen} segment."
+            
+        if st.session_state["analysis_result"]:
+            st.success(st.session_state["analysis_result"])
