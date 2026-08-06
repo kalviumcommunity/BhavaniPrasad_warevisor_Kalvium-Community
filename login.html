@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WareVisor - RetailStock Manager | Login</title>
+  <meta name="description" content="RetailStock Manager Login Portal. Multi-role warehouse access.">
+  
+  <link rel="stylesheet" href="login.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+
+  <!-- Background Ambient Canvas -->
+  <canvas id="ambient-canvas"></canvas>
+
+  <!-- Top Right Theme Toggle -->
+  <div class="top-controls">
+    <button class="theme-toggle-btn" id="theme-toggle" aria-label="Toggle Theme">
+      <i data-lucide="sun" id="theme-icon"></i>
+      <span id="theme-text">Light Mode</span>
+    </button>
+  </div>
+
+  <!-- Main Container -->
+  <div class="page-container">
+    
+    <!-- Left Showcase Panel -->
+    <div class="showcase-panel">
+      <div class="brand-header">
+        <div class="brand-logo-icon">
+          <i data-lucide="boxes" style="width: 28px; height: 28px;"></i>
+        </div>
+        <div>
+          <div class="brand-title">WareVisor</div>
+          <div class="brand-subtitle">RetailStock Manager v4.8</div>
+        </div>
+      </div>
+
+      <div class="showcase-content">
+        <div class="status-badge">
+          <span class="status-dot"></span>
+          <span>All Warehouses Operational & Synced</span>
+        </div>
+
+        <h1 class="showcase-heading">Retail & Warehouse Stock Intelligence</h1>
+        <p class="showcase-description">
+          Real-time stock auditing, predictive inventory forecasting, and multi-location warehouse management.
+        </p>
+
+        <!-- Live Metrics Grid -->
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-value">1,248</div>
+            <div class="stat-label">Total Products</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">45,780</div>
+            <div class="stat-label">Total Stock</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">99.98%</div>
+            <div class="stat-label">Accuracy</div>
+          </div>
+        </div>
+
+        <!-- Key Feature Highlights -->
+        <div class="feature-list">
+          <div class="feature-item">
+            <div class="feature-icon-wrapper">
+              <i data-lucide="shield-check"></i>
+            </div>
+            <span>Manager & Product Sender Role Access</span>
+          </div>
+          <div class="feature-item">
+            <div class="feature-icon-wrapper">
+              <i data-lucide="zap"></i>
+            </div>
+            <span>Automated Low Stock & Reorder Alerts</span>
+          </div>
+          <div class="feature-item">
+            <div class="feature-icon-wrapper">
+              <i data-lucide="line-chart"></i>
+            </div>
+            <span>Live Stock Movement & Category Analytics</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="showcase-footer">
+        <span>© 2026 WareVisor Platform</span>
+        <span style="display: inline-flex; align-items: center; gap: 6px;">
+          <i data-lucide="lock" style="width: 14px; height: 14px;"></i> Secure Portal
+        </span>
+      </div>
+    </div>
+
+    <!-- Right Authentication Panel -->
+    <div class="auth-panel">
+      <div class="auth-header">
+        <h2 class="auth-title">Welcome Back</h2>
+        <p class="auth-subtitle">Select your role and sign in to open the dashboard.</p>
+      </div>
+
+      <!-- Role Selector Pills -->
+      <div class="role-selector-container">
+        <span class="role-selector-label">Select Role Account</span>
+        <div class="role-pills">
+          <button class="role-pill-btn active" data-role="manager">
+            <i data-lucide="user-check"></i>
+            <span>Manager</span>
+          </button>
+          <button class="role-pill-btn" data-role="sender">
+            <i data-lucide="warehouse"></i>
+            <span>Sender</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Credentials Login Form -->
+      <div id="credentials-form-container">
+        <form id="login-form">
+          
+          <!-- Username / Email Input -->
+          <div class="form-group">
+            <div class="input-container">
+              <input type="text" id="username" class="input-field" placeholder="Username (e.g. manager)" required value="manager">
+              <i data-lucide="user" class="input-icon"></i>
+            </div>
+          </div>
+
+          <!-- Password Input -->
+          <div class="form-group">
+            <div class="input-container">
+              <input type="password" id="password" class="input-field" placeholder="Enter password" required value="manager123">
+              <i data-lucide="lock" class="input-icon"></i>
+              <button type="button" class="input-toggle-btn" id="toggle-password" aria-label="Toggle password">
+                <i data-lucide="eye" id="eye-icon"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Options Bar -->
+          <div class="form-options">
+            <label class="remember-me">
+              <input type="checkbox" id="remember-me" checked>
+              <span>Keep me logged in</span>
+            </label>
+          </div>
+
+          <!-- Quick 1-Click Demo Login Button -->
+          <button type="button" class="demo-login-btn" id="demo-login-btn">
+            <i data-lucide="sparkles"></i>
+            <span id="demo-btn-text">1-Click Login as Central Manager</span>
+          </button>
+
+          <!-- Submit Button -->
+          <button type="submit" class="submit-btn" id="submit-btn">
+            <span>Sign In to Dashboard</span>
+            <i data-lucide="arrow-right"></i>
+          </button>
+        </form>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- JavaScript -->
+  <script src="login.js"></script>
+</body>
+</html>
