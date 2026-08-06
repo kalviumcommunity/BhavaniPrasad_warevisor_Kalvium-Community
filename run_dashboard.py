@@ -13,13 +13,14 @@ def run():
     Handler = http.server.SimpleHTTPRequestHandler
     
     print("==================================================")
-    print("WareVisor Manager Dashboard Server Started!")
-    print(f"URL: http://localhost:{PORT}")
+    print("WareVisor RetailStock Manager Server Started!")
+    print(f"Login Portal URL: http://localhost:{PORT}/login.html")
+    print(f"Dashboard URL: http://localhost:{PORT}/index.html")
     print("Press Ctrl+C to stop.")
     print("==================================================")
     
     try:
-        webbrowser.open(f"http://localhost:{PORT}")
+        webbrowser.open(f"http://localhost:{PORT}/login.html")
     except Exception:
         pass
     
