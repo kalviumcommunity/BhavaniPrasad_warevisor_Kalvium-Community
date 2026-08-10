@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 
 from scripts.db_connect import get_engine, authenticate_user, test_connection
+from alert_config import ALERT_THRESHOLDS, check_alerts, display_alerts
 
 # Configure Streamlit page layout
 st.set_page_config(
@@ -307,6 +308,16 @@ if st.session_state["user_role"] == "manager":
         row_count = len(filtered_df)
         unique_customers = filtered_df[cust_col].nunique() if cust_col else 0
         null_pct = (filtered_df.isnull().sum().sum() / (filtered_df.shape[0] * filtered_df.shape[1]) * 100) if not filtered_df.empty else 0
+
+        # Evaluate threshold alert system on reactive filtered dataset
+        current_metrics = {
+            "avg_order_value": float(avg_order),
+            "null_percentage": float(null_pct),
+            "churn_rate": float(st.session_state.get("current_churn_rate", 4.5))
+        }
+        alerts = check_alerts(current_metrics, ALERT_THRESHOLDS)
+        if alerts:
+            display_alerts(alerts, st)
 
         col1, col2, col3, col4, col5 = st.columns(5)
         with col1:

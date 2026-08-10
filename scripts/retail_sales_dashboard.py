@@ -9,6 +9,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import streamlit as st
 
+from alert_config import ALERT_THRESHOLDS, check_alerts, display_alerts
 from export_utils import export_analysis
 from scripts.warehouse_retail_pipeline import (
     DEFAULT_CLEANED_OUTPUT,
@@ -202,6 +203,20 @@ def main() -> None:
     total_transfers = float(filtered_df["retail_transfers"].sum()) if not filtered_df.empty else 0.0
     total_warehouse_sales = float(filtered_df["warehouse_sales"].sum()) if not filtered_df.empty else 0.0
     top_supplier = filtered_df.groupby("supplier")["warehouse_sales"].sum().sort_values(ascending=False).index[0] if not filtered_df.empty else "N/A"
+
+    # Dynamic Alert Monitoring based on reactive filter state
+    null_count = filtered_df.isnull().sum().sum() if not filtered_df.empty else 0
+    total_cells = (filtered_df.shape[0] * filtered_df.shape[1]) if not filtered_df.empty else 1
+    null_pct = (null_count / total_cells) * 100.0
+    avg_sales_val = float(filtered_df["retail_sales"].mean()) if not filtered_df.empty else 0.0
+
+    current_metrics = {
+        "avg_order_value": avg_sales_val,
+        "null_percentage": null_pct,
+        "churn_rate": 5.0
+    }
+    alerts = check_alerts(current_metrics, ALERT_THRESHOLDS)
+    display_alerts(alerts, st)
 
     col1, col2, col3, col4, col5 = st.columns(5)
     with col1:
