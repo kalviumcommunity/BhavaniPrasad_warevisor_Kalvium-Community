@@ -7,7 +7,7 @@ Add Product
 Submit Product Details
       │
       ▼
-Database
+PostgreSQL Database
       │
       ▼
 Manager Dashboard
@@ -18,11 +18,12 @@ Inventory Analysis
       ▼
 Reports & Alerts
 
-3. Design the database
+3. Design the database (PostgreSQL Only)
 
-Use PostgreSQL for the application database. The connection helper and authentication logic live in [scripts/db_connect.py](scripts/db_connect.py) and schema definitions live in [sql/postgres_schema.sql](sql/postgres_schema.sql).
+Use PostgreSQL (Supabase / SQLAlchemy) for the application database. The connection helper and authentication logic live in [scripts/db_connect.py](scripts/db_connect.py) and schema definitions live in [sql/postgres_schema.sql](sql/postgres_schema.sql).
 
 ```sql
+-- Application Users Table (Exclusively using app_users schema)
 CREATE TABLE IF NOT EXISTS app_users (
     user_id SERIAL PRIMARY KEY,
     username VARCHAR(50) UNIQUE NOT NULL,
@@ -33,41 +34,47 @@ CREATE TABLE IF NOT EXISTS app_users (
     status VARCHAR(20) NOT NULL DEFAULT 'active',
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
-```
 
-CREATE TABLE IF NOT EXISTS Products (
-    product_id INTEGER PRIMARY KEY AUTOINCREMENT,
-    product_name TEXT NOT NULL,
-    category TEXT,
-    SKU TEXT NOT NULL UNIQUE,
+-- Products Table referencing app_users
+CREATE TABLE IF NOT EXISTS products (
+    product_id BIGSERIAL PRIMARY KEY,
+    product_name VARCHAR(255) NOT NULL,
+    category VARCHAR(100),
+    sku VARCHAR(100) NOT NULL UNIQUE,
     sender_id INTEGER NOT NULL,
-    FOREIGN KEY (sender_id) REFERENCES Users (id)
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (sender_id) REFERENCES app_users (user_id) ON DELETE CASCADE
 );
 
-CREATE TABLE IF NOT EXISTS Inventory (
-    inventory_id INTEGER PRIMARY KEY AUTOINCREMENT,
-    product_id INTEGER NOT NULL,
-    warehouse TEXT NOT NULL,
+-- Inventory Table referencing products
+CREATE TABLE IF NOT EXISTS inventory (
+    inventory_id BIGSERIAL PRIMARY KEY,
+    product_id BIGINT NOT NULL,
+    warehouse VARCHAR(100) NOT NULL,
     quantity INTEGER NOT NULL DEFAULT 0 CHECK (quantity >= 0),
-    status TEXT NOT NULL,
-    FOREIGN KEY (product_id) REFERENCES Products (product_id)
+    status VARCHAR(50) NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (product_id) REFERENCES products (product_id) ON DELETE CASCADE
 );
 
-CREATE TABLE IF NOT EXISTS Shipments (
-    shipment_id INTEGER PRIMARY KEY AUTOINCREMENT,
+-- Shipments Table referencing app_users and products
+CREATE TABLE IF NOT EXISTS shipments (
+    shipment_id BIGSERIAL PRIMARY KEY,
     sender_id INTEGER NOT NULL,
-    product_id INTEGER NOT NULL,
+    product_id BIGINT NOT NULL,
     quantity INTEGER NOT NULL CHECK (quantity > 0),
-    shipment_date DATE NOT NULL,
-    FOREIGN KEY (sender_id) REFERENCES Users (id),
-    FOREIGN KEY (product_id) REFERENCES Products (product_id)
+    shipment_date TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (sender_id) REFERENCES app_users (user_id) ON DELETE CASCADE,
+    FOREIGN KEY (product_id) REFERENCES products (product_id) ON DELETE CASCADE
 );
 
-CREATE TABLE IF NOT EXISTS Returns (
-    return_id INTEGER PRIMARY KEY AUTOINCREMENT,
-    product_id INTEGER NOT NULL,
+-- Returns Table referencing products
+CREATE TABLE IF NOT EXISTS returns (
+    return_id BIGSERIAL PRIMARY KEY,
+    product_id BIGINT NOT NULL,
     quantity INTEGER NOT NULL CHECK (quantity > 0),
     reason TEXT NOT NULL,
-    FOREIGN KEY (product_id) REFERENCES Products (product_id)
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (product_id) REFERENCES products (product_id) ON DELETE CASCADE
 );
 ```

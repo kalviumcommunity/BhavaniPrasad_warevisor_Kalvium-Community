@@ -1,419 +1,566 @@
-"""Manager Role SaaS Dashboard screens & features matching reference image."""
+"""Manager Role SaaS Dashboard screens & features styled with Production-Ready Dark Navy Theme."""
 
 import pandas as pd
 import plotly.express as px
-import plotly.graph_objects as go
 import streamlit as st
+import math
 
-from src.db import load_products_df, fetch_users_df, add_product_record
+from src.db import (
+    fetch_dashboard_metrics,
+    fetch_monthly_records_trend,
+    fetch_suppliers_summary,
+    fetch_recent_records,
+    fetch_item_types_summary,
+    fetch_records_count,
+    fetch_records_page,
+    fetch_users_df,
+    add_product_record
+)
 from src.theme import apply_theme
 
 
 def render_manager_portal():
-    """Render full Manager Portal with Fixed Dark Blue Sidebar matching the reference image."""
+    """Render full Manager Portal with Dark Navy Sidebar & Custom SaaS Navigation."""
     apply_theme("manager")
 
-    # ---------------------------------------------------------
-    # Sidebar Header & Navigation matching reference image
-    # ---------------------------------------------------------
-    st.sidebar.markdown("""
-    <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
-        <div style="width: 42px; height: 42px; background: linear-gradient(135deg, #3a36db, #2563eb); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 22px; color: white; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);">📦</div>
-        <div>
-            <div style="font-weight: 800; font-size: 17px; color: white; line-height: 1.2; letter-spacing: -0.3px;">Retail Stock</div>
-            <div style="font-size: 13px; color: #94a3b8; font-weight: 600;">Manager</div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+    if "manager_nav" not in st.session_state:
+        st.session_state["manager_nav"] = "Dashboard"
 
-    nav_options = [
-        "📊  Dashboard",
-        "📦  All Products",
-        "🏢  Warehouses",
-        "🔄  Stock Movements",
-        "📑  Reports",
-        "🔔  Alerts",
-        "👥  Users",
-        "⚙️  Settings",
-        "➕  Add Product"
-    ]
-
-    selected_nav = st.sidebar.radio(
-        "Navigation",
-        nav_options,
-        key="manager_nav_radio",
-        label_visibility="collapsed"
+    # Sidebar Header
+    st.sidebar.markdown(
+        '<div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid #1E293B;">'
+        '<div style="width: 38px; height: 38px; border-radius: 10px; background: linear-gradient(135deg, #2563eb, #1d4ed8); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 18px; color: white;">📊</div>'
+        '<div>'
+        '<div style="font-weight: 800; font-size: 15px; color: #F8FAFC; line-height: 1.2;">WareVisor</div>'
+        '<div style="font-size: 11px; color: #94A3B8; font-weight: 500;">Retail Data Platform</div>'
+        '</div>'
+        '</div>',
+        unsafe_allow_html=True
     )
+
+    current_page = st.session_state["manager_nav"]
+    if current_page == "Settings":
+        current_page = "Dashboard"
+        st.session_state["manager_nav"] = "Dashboard"
+
+    # Navigation Section 1: MAIN
+    st.sidebar.markdown('<div class="nav-section-title">MAIN</div>', unsafe_allow_html=True)
+    main_items = [
+        ("Dashboard", "📊  Dashboard"),
+        ("Records", "📦  Records"),
+        ("Suppliers", "🏬  Suppliers"),
+        ("Item Types", "🏷️  Item Types"),
+        ("Reports", "📑  Reports")
+    ]
+    for page_id, label in main_items:
+        is_active = (current_page == page_id)
+        if st.sidebar.button(
+            label,
+            key=f"mgr_btn_{page_id}",
+            use_container_width=True,
+            type="primary" if is_active else "secondary"
+        ):
+            st.session_state["manager_nav"] = page_id
+            st.rerun()
+
+    # Navigation Section 2: ADMINISTRATION
+    st.sidebar.markdown('<div class="nav-section-title">ADMINISTRATION</div>', unsafe_allow_html=True)
+    admin_items = [
+        ("Users", "👥  Users"),
+        ("Add Record", "➕  Add Record")
+    ]
+    for page_id, label in admin_items:
+        is_active = (current_page == page_id)
+        if st.sidebar.button(
+            label,
+            key=f"mgr_btn_{page_id}",
+            use_container_width=True,
+            type="primary" if is_active else "secondary"
+        ):
+            st.session_state["manager_nav"] = page_id
+            st.rerun()
 
     st.sidebar.divider()
 
-    # User Profile at Bottom of Sidebar
-    st.sidebar.markdown(f"""
-    <div style="padding: 12px 14px; background: #1c2541; border-radius: 10px; margin-bottom: 12px;">
-        <div style="font-weight: 700; font-size: 14px; color: white;">{st.session_state.get('user_name', 'Bhavani Prasad')}</div>
-        <div style="font-size: 12px; color: #94a3b8;">Role: Central Admin</div>
-    </div>
-    """, unsafe_allow_html=True)
+    # User Profile Card at Sidebar Bottom
+    user_display_name = st.session_state.get('user_name', 'Bhavani Prasad')
+    user_role_str = str(st.session_state.get('user_role', 'manager')).title()
 
-    if st.sidebar.button("🚪  Logout", use_container_width=True, key="mgr_logout_btn"):
+    st.sidebar.markdown(
+        f'<div style="padding: 12px; background-color: #0B172A; border: 1px solid #1E293B; border-radius: 10px; margin-bottom: 12px;">'
+        f'<div style="font-weight: 700; font-size: 13px; color: #F8FAFC;">{user_display_name}</div>'
+        f'<div style="font-size: 11px; color: #94A3B8; margin-top: 2px;">{user_role_str}</div>'
+        f'</div>',
+        unsafe_allow_html=True
+    )
+
+    if st.sidebar.button("🚪 Logout", use_container_width=True, key="mgr_logout_btn"):
         st.session_state["authenticated"] = False
         st.session_state["user_role"] = None
         st.session_state["user_name"] = None
         st.session_state["username"] = None
+        st.session_state.pop("manager_nav", None)
         st.rerun()
 
-    # Shared Dataset
-    df_products = load_products_df()
-
-    # Top Pill Header Banner matching Reference Image
-    st.markdown('<div class="role-banner-pill">ROLE 1: MANAGER – View All Products in Warehouse</div>', unsafe_allow_html=True)
-
-    # ---------------------------------------------------------
-    # Manager Page Router
-    # ---------------------------------------------------------
-    if selected_nav == "📊  Dashboard":
-        render_dashboard(df_products)
-    elif selected_nav == "📦  All Products":
-        render_all_products(df_products)
-    elif selected_nav == "➕  Add Product":
-        render_add_product()
-    elif selected_nav == "🏢  Warehouses":
-        render_warehouses()
-    elif selected_nav == "🔄  Stock Movements":
-        render_stock_movements()
-    elif selected_nav == "📑  Reports":
-        render_reports(df_products)
-    elif selected_nav == "🔔  Alerts":
-        render_alerts()
-    elif selected_nav == "👥  Users":
+    # Router
+    if current_page == "Dashboard":
+        render_dashboard()
+    elif current_page == "Records":
+        render_records()
+    elif current_page == "Suppliers":
+        render_suppliers()
+    elif current_page == "Item Types":
+        render_item_types()
+    elif current_page == "Reports":
+        render_reports()
+    elif current_page == "Users":
         render_users()
-    elif selected_nav == "⚙️  Settings":
-        render_settings()
+    elif current_page == "Add Record":
+        render_add_record()
 
 
-def render_dashboard(df: pd.DataFrame):
-    """1. Manager Dashboard (Summary)."""
-    st.title("1. Manager Dashboard (Summary)")
-    st.caption("Real-time view of inventory across all warehouses")
+def render_dashboard():
+    """1. Manager Dashboard in Production-Ready Dark Navy Theme."""
+    
+    user_display_name = st.session_state.get('user_name', 'Bhavani Prasad')
+    user_role_str = str(st.session_state.get('user_role', 'manager')).title()
 
-    # 4 Stat Cards Row
+    h_left, h_right = st.columns([3, 1])
+    with h_left:
+        st.markdown(
+            '<div>'
+            '<div style="font-size: 10px; font-weight: 800; color: #3B82F6; letter-spacing: 0.8px; text-transform: uppercase; margin-bottom: 4px;">MANAGER / OVERVIEW</div>'
+            '<h1 style="font-size: 26px; font-weight: 800; color: #F8FAFC; margin: 0 0 4px 0;">Manager Dashboard</h1>'
+            '<p style="font-size: 13px; color: #94A3B8; margin: 0;">Overview of retail records and performance metrics.</p>'
+            '</div>',
+            unsafe_allow_html=True
+        )
+    with h_right:
+        st.markdown(
+            '<div style="display: flex; align-items: center; justify-content: flex-end; gap: 10px; background-color: #0B172A; border: 1px solid #1E293B; border-radius: 12px; padding: 8px 14px; margin-top: 6px;">'
+            '<div style="width: 32px; height: 32px; border-radius: 50%; background-color: #101D31; color: #3B82F6; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 14px;">👤</div>'
+            '<div>'
+            f'<div style="font-size: 12px; font-weight: 700; color: #F8FAFC; line-height: 1.2;">{user_display_name}</div>'
+            f'<div style="font-size: 10px; color: #94A3B8; font-weight: 500;">{user_role_str}</div>'
+            '</div>'
+            '</div>',
+            unsafe_allow_html=True
+        )
+
+    st.write("")
+
+    metrics = fetch_dashboard_metrics()
+
+    # 4 Compact Dark Navy KPI Cards
     c1, c2, c3, c4 = st.columns(4)
     
     with c1:
-        st.markdown("""
-        <div class="saas-card-white">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span style="font-size: 13px; font-weight: 600; color: #64748b;">Total Products</span>
-                <span style="color: #2563eb; font-size: 16px;">📦</span>
-            </div>
-            <div style="font-size: 1.9rem; font-weight: 800; color: #0f172a; margin: 6px 0;">1,248</div>
-            <span class="badge-instock">+ All warehouses</span>
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown(
+            '<div style="background-color: #101D31; border: 1px solid #1E293B; border-radius: 14px; padding: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">'
+            '<div style="display: flex; justify-content: space-between; align-items: center;">'
+            '<span style="font-size: 10px; font-weight: 800; text-transform: uppercase; color: #94A3B8; letter-spacing: 0.5px;">TOTAL RECORDS</span>'
+            '<div style="width: 28px; height: 28px; border-radius: 8px; background-color: rgba(37, 99, 235, 0.2); color: #60A5FA; display: flex; align-items: center; justify-content: center; font-size: 14px;">📄</div>'
+            '</div>'
+            f'<div style="font-size: 26px; font-weight: 800; color: #F8FAFC; margin: 8px 0 4px 0;">{metrics["total_records"]:,}</div>'
+            '<span style="background-color: rgba(37, 99, 235, 0.15); color: #60A5FA; border: 1px solid rgba(59, 130, 246, 0.3); font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 10px; display: inline-block;">Total entries</span>'
+            '</div>',
+            unsafe_allow_html=True
+        )
 
     with c2:
-        st.markdown("""
-        <div class="saas-card-white">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span style="font-size: 13px; font-weight: 600; color: #64748b;">Total Stock</span>
-                <span style="color: #10b981; font-size: 16px;">📊</span>
-            </div>
-            <div style="font-size: 1.9rem; font-weight: 800; color: #0f172a; margin: 6px 0;">45,780</div>
-            <span class="badge-instock">+ All warehouses</span>
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown(
+            '<div style="background-color: #101D31; border: 1px solid #1E293B; border-radius: 14px; padding: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">'
+            '<div style="display: flex; justify-content: space-between; align-items: center;">'
+            '<span style="font-size: 10px; font-weight: 800; text-transform: uppercase; color: #94A3B8; letter-spacing: 0.5px;">UNIQUE ITEMS</span>'
+            '<div style="width: 28px; height: 28px; border-radius: 8px; background-color: rgba(16, 185, 129, 0.2); color: #34D399; display: flex; align-items: center; justify-content: center; font-size: 14px;">📦</div>'
+            '</div>'
+            f'<div style="font-size: 26px; font-weight: 800; color: #F8FAFC; margin: 8px 0 4px 0;">{metrics["unique_items"]:,}</div>'
+            '<span style="background-color: rgba(16, 185, 129, 0.15); color: #34D399; border: 1px solid rgba(16, 185, 129, 0.3); font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 10px; display: inline-block;">Distinct item codes</span>'
+            '</div>',
+            unsafe_allow_html=True
+        )
 
     with c3:
-        st.markdown("""
-        <div class="saas-card-white">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span style="font-size: 13px; font-weight: 600; color: #64748b;">Low Stock Products</span>
-                <span style="color: #f59e0b; font-size: 16px;">⚠️</span>
-            </div>
-            <div style="font-size: 1.9rem; font-weight: 800; color: #d97706; margin: 6px 0;">86</div>
-            <span class="badge-lowstock">Reorder Soon</span>
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown(
+            '<div style="background-color: #101D31; border: 1px solid #1E293B; border-radius: 14px; padding: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">'
+            '<div style="display: flex; justify-content: space-between; align-items: center;">'
+            '<span style="font-size: 10px; font-weight: 800; text-transform: uppercase; color: #94A3B8; letter-spacing: 0.5px;">SUPPLIERS</span>'
+            '<div style="width: 28px; height: 28px; border-radius: 8px; background-color: rgba(168, 85, 247, 0.2); color: #C084FC; display: flex; align-items: center; justify-content: center; font-size: 14px;">🏬</div>'
+            '</div>'
+            f'<div style="font-size: 26px; font-weight: 800; color: #F8FAFC; margin: 8px 0 4px 0;">{metrics["total_suppliers"]:,}</div>'
+            '<span style="background-color: rgba(168, 85, 247, 0.15); color: #C084FC; border: 1px solid rgba(168, 85, 247, 0.3); font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 10px; display: inline-block;">Active suppliers</span>'
+            '</div>',
+            unsafe_allow_html=True
+        )
 
     with c4:
-        st.markdown("""
-        <div class="saas-card-white">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span style="font-size: 13px; font-weight: 600; color: #64748b;">Out of Stock</span>
-                <span style="color: #ef4444; font-size: 16px;">🚨</span>
-            </div>
-            <div style="font-size: 1.9rem; font-weight: 800; color: #dc2626; margin: 6px 0;">12</div>
-            <span class="badge-outstock">Need Attention</span>
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown(
+            '<div style="background-color: #101D31; border: 1px solid #1E293B; border-radius: 14px; padding: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">'
+            '<div style="display: flex; justify-content: space-between; align-items: center;">'
+            '<span style="font-size: 10px; font-weight: 800; text-transform: uppercase; color: #94A3B8; letter-spacing: 0.5px;">ITEM TYPES</span>'
+            '<div style="width: 28px; height: 28px; border-radius: 8px; background-color: rgba(245, 158, 11, 0.2); color: #FBBF24; display: flex; align-items: center; justify-content: center; font-size: 14px;">🏷️</div>'
+            '</div>'
+            f'<div style="font-size: 26px; font-weight: 800; color: #F8FAFC; margin: 8px 0 4px 0;">{metrics["total_item_types"]:,}</div>'
+            '<span style="background-color: rgba(245, 158, 11, 0.15); color: #FBBF24; border: 1px solid rgba(245, 158, 11, 0.3); font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 10px; display: inline-block;">Distinct categories</span>'
+            '</div>',
+            unsafe_allow_html=True
+        )
 
     st.write("")
 
-    # Grid: Stock Overview Line Chart & Stock by Category Doughnut Chart inside White Cards
-    chart_col1, chart_col2 = st.columns([2, 1.2])
+    # Section Header: Analytics
+    st.markdown('<div style="font-size: 16px; font-weight: 700; color: #F8FAFC; margin: 8px 0 12px 0;">Analytics</div>', unsafe_allow_html=True)
+
+    chart_col1, chart_col2 = st.columns([2, 1.3])
 
     with chart_col1:
-        st.markdown('<div class="saas-card-white">', unsafe_allow_html=True)
-        ch_top1, ch_top2 = st.columns([2, 1])
-        with ch_top1:
-            st.subheader("Stock Overview")
-        with ch_top2:
-            period = st.selectbox("Select Filter", ["This Year", "This Quarter", "This Month"], key="dash_period", label_visibility="collapsed")
-
-        df_trend = pd.DataFrame({
-            "Month": ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug"],
-            "Stock": [28000, 32000, 29000, 37000, 34000, 41000, 43500, 45780]
-        })
-        fig = px.line(df_trend, x="Month", y="Stock", markers=True, line_shape="spline")
-        fig.update_traces(line_color="#2563eb", line_width=3, marker=dict(size=8, color="#2563eb"))
-        fig.update_layout(template="plotly_white", height=300, margin=dict(l=20, r=20, t=20, b=20), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
-        st.plotly_chart(fig, use_container_width=True)
-        st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown('<div style="font-size: 14px; font-weight: 700; color: #F8FAFC; margin-bottom: 8px;">Records Volume Over Time</div>', unsafe_allow_html=True)
+        trend_df = fetch_monthly_records_trend()
+        if not trend_df.empty:
+            fig = px.line(trend_df, x="period", y="record_count", markers=True, line_shape="spline")
+            fig.update_traces(line_color="#3B82F6", line_width=2.5, marker=dict(size=6, color="#60A5FA"))
+            fig.update_layout(
+                template="plotly_dark",
+                paper_bgcolor="#101D31",
+                plot_bgcolor="#101D31",
+                height=270,
+                margin=dict(l=10, r=10, t=10, b=10),
+                font=dict(color="#CBD5E1", family="Inter, sans-serif"),
+                xaxis=dict(title=dict(text="Period", font=dict(color="#94A3B8", size=11)), tickfont=dict(color="#94A3B8", size=10), gridcolor="#1E293B"),
+                yaxis=dict(title=dict(text="Records", font=dict(color="#94A3B8", size=11)), tickfont=dict(color="#94A3B8", size=10), gridcolor="#1E293B")
+            )
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.info("No record trend data available.")
 
     with chart_col2:
-        st.markdown('<div class="saas-card-white">', unsafe_allow_html=True)
-        st.subheader("Stock by Category")
-        cat_df = pd.DataFrame({
-            "Category": ["Electronics", "Clothing", "Home & Kitchen", "Beauty", "Others"],
-            "Share": [40, 25, 20, 10, 5]
-        })
-        fig_donut = px.pie(
-            cat_df, names="Category", values="Share", hole=0.6,
-            color_discrete_sequence=["#2563eb", "#38bdf8", "#f59e0b", "#ec4899", "#a855f7"]
-        )
-        fig_donut.update_layout(template="plotly_white", height=300, margin=dict(l=10, r=10, t=20, b=10), paper_bgcolor="rgba(0,0,0,0)")
-        st.plotly_chart(fig_donut, use_container_width=True)
-        st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown('<div style="font-size: 14px; font-weight: 700; color: #F8FAFC; margin-bottom: 8px;">Records by Item Type</div>', unsafe_allow_html=True)
+        cat_summary = fetch_item_types_summary()
+        if not cat_summary.empty:
+            fig_donut = px.pie(
+                cat_summary, names="Item Type", values="Record Count", hole=0.6,
+                color_discrete_sequence=["#2563EB", "#38BDF8", "#F59E0B", "#EC4899", "#A855F7", "#10B981", "#64748B"]
+            )
+            fig_donut.update_layout(
+                template="plotly_dark",
+                paper_bgcolor="#101D31",
+                plot_bgcolor="#101D31",
+                height=270,
+                margin=dict(l=10, r=10, t=10, b=10),
+                font=dict(color="#CBD5E1", family="Inter, sans-serif"),
+                legend=dict(font=dict(color="#CBD5E1", size=10), orientation="v")
+            )
+            st.plotly_chart(fig_donut, use_container_width=True)
+        else:
+            st.info("No item type data available.")
 
     st.write("")
 
-    # Cards Grid: Top Warehouses by Stock & Recent Stock Movements matching Reference Image
+    # Section Header: Data Insights
+    st.markdown('<div style="font-size: 16px; font-weight: 700; color: #F8FAFC; margin: 8px 0 12px 0;">Data Insights</div>', unsafe_allow_html=True)
+
     w_col, m_col = st.columns(2)
 
+    # TOP SUPPLIERS CARD
     with w_col:
-        st.markdown('<div class="saas-card-white">', unsafe_allow_html=True)
-        st.subheader("Top Warehouses by Stock")
-        st.markdown("""
-        <div style="margin-top: 14px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e5e7eb;">
-                <div><b>1. Central Warehouse</b></div>
-                <div style="color: #2563eb; font-weight: 800; font-size: 15px;">18,500</div>
-            </div>
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e5e7eb;">
-                <div><b>2. North Zone Warehouse</b></div>
-                <div style="color: #2563eb; font-weight: 800; font-size: 15px;">12,350</div>
-            </div>
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0;">
-                <div><b>3. South Zone Warehouse</b></div>
-                <div style="color: #2563eb; font-weight: 800; font-size: 15px;">8,900</div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-        st.write("")
-        st.button("View All Warehouses", key="btn_view_wh")
-        st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown('<div style="font-size: 14px; font-weight: 700; color: #F8FAFC; margin-bottom: 8px;">Top Suppliers</div>', unsafe_allow_html=True)
+        sup_df = fetch_suppliers_summary(limit=5)
+        if not sup_df.empty:
+            rows_list = []
+            for rank, (_, row) in enumerate(sup_df.iterrows(), start=1):
+                s_name = row['Supplier Name']
+                s_recs = row['Total Records']
+                rows_list.append(
+                    f'<div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #1E293B;">'
+                    f'<div style="display: flex; align-items: center; gap: 10px;">'
+                    f'<span style="background-color: rgba(37, 99, 235, 0.2); color: #60A5FA; border: 1px solid rgba(59, 130, 246, 0.3); font-size: 11px; font-weight: 800; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">#{rank}</span>'
+                    f'<div style="font-weight: 600; color: #F8FAFC; font-size: 13px;">{s_name}</div>'
+                    f'</div>'
+                    f'<div style="color: #38BDF8; font-weight: 800; font-size: 12px;">{s_recs:,} records</div>'
+                    f'</div>'
+                )
+            
+            sup_card_html = (
+                f'<div style="background-color: #101D31; border: 1px solid #1E293B; border-radius: 14px; padding: 16px 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">'
+                f'{"".join(rows_list)}'
+                f'</div>'
+            )
+            st.markdown(sup_card_html, unsafe_allow_html=True)
+        else:
+            st.info("No supplier data available.")
 
+    # RECENT RECORDS CARD
     with m_col:
-        st.markdown('<div class="saas-card-white">', unsafe_allow_html=True)
-        st.subheader("Recent Stock Movements")
-        st.markdown("""
-        <div style="margin-top: 14px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #e5e7eb;">
-                <div><b>Wireless Mouse</b><br><small style="color: #6b7280;">Added to Central Warehouse</small></div>
-                <span class="badge-instock">+120 units</span>
-            </div>
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #e5e7eb;">
-                <div><b>Shampoo Bottle</b><br><small style="color: #6b7280;">Reduced from South Warehouse</small></div>
-                <span class="badge-outstock">-60 units</span>
-            </div>
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0;">
-                <div><b>T-Shirt (Blue)</b><br><small style="color: #6b7280;">Added to North Warehouse</small></div>
-                <span class="badge-instock">+200 units</span>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-        st.write("")
-        st.button("View All Movements", key="btn_view_mv")
-        st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown('<div style="font-size: 14px; font-weight: 700; color: #F8FAFC; margin-bottom: 8px;">Recent Records</div>', unsafe_allow_html=True)
+        rec_df = fetch_recent_records(limit=5)
+        if not rec_df.empty:
+            rec_rows_list = []
+            for _, row in rec_df.iterrows():
+                desc = row.get("item_description", "Item Record")
+                it_type = row.get("item_type", "General")
+                code = row.get("item_code", "N/A")
+                supplier_name = row.get("supplier", "Supplier")
+                rec_rows_list.append(
+                    f'<div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #1E293B;">'
+                    f'<div>'
+                    f'<div style="font-weight: 700; color: #F8FAFC; font-size: 13px;">{code} - {desc[:28]}</div>'
+                    f'<div style="font-size: 11px; color: #94A3B8; margin-top: 2px;">Type: {it_type} • Year: {row.get("year", "")}</div>'
+                    f'</div>'
+                    f'<span style="background-color: rgba(16, 185, 129, 0.15); color: #34D399; border: 1px solid rgba(16, 185, 129, 0.3); font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 8px; white-space: nowrap;">{supplier_name[:16]}</span>'
+                    f'</div>'
+                )
+            
+            rec_card_html = (
+                f'<div style="background-color: #101D31; border: 1px solid #1E293B; border-radius: 14px; padding: 16px 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">'
+                f'{"".join(rec_rows_list)}'
+                f'</div>'
+            )
+            st.markdown(rec_card_html, unsafe_allow_html=True)
+        else:
+            st.info("No recent database records.")
 
 
-def render_all_products(df: pd.DataFrame):
-    """2. All Products Screen."""
+def render_records():
+    """2. Records Screen in Dark Navy Theme with Production Column Formatting."""
     top1, top2 = st.columns([3, 1])
     with top1:
-        st.title("2. All Products")
+        st.title("Records")
+        st.caption("Manage and explore retail sales records")
     with top2:
-        if st.button("+ Add New Product", use_container_width=True, key="btn_add_p_top"):
-            st.session_state["manager_nav_radio"] = "➕  Add Product"
+        if st.button("+ Add New Record", use_container_width=True, key="btn_add_rec_top"):
+            st.session_state["manager_nav"] = "Add Record"
             st.rerun()
 
-    st.markdown('<div class="saas-card-white" style="margin-top: 10px;">', unsafe_allow_html=True)
-    
-    # Search and Filter Inputs Bar
-    f1, f2, f3, f4, f5 = st.columns([2, 1, 1, 1, 0.8])
+    # Track Pagination State in session_state
+    if "rec_page" not in st.session_state:
+        st.session_state["rec_page"] = 1
+    if "rec_page_size" not in st.session_state:
+        st.session_state["rec_page_size"] = 10
+
+    # Interactive Search & Filter Toolbar
+    f1, f2, f3, f4, f5 = st.columns([2.2, 1, 1, 1.2, 1])
     with f1:
-        search_query = st.text_input("Search", placeholder="🔍 Search product name, SKU, category...", label_visibility="collapsed", key="search_prod")
+        search_q = st.text_input("Search records...", placeholder="Search code, description, supplier...", label_visibility="collapsed", key="rec_search_input")
     with f2:
-        cat_filter = st.selectbox("Category", ["All Categories", "Electronics", "Clothing", "Beauty", "Home & Kitchen"], label_visibility="collapsed", key="cat_prod")
+        year_sel = st.selectbox("Year", ["All Years", "2020", "2019", "2018", "2017"], label_visibility="collapsed", key="rec_year_select")
     with f3:
-        wh_filter = st.selectbox("Warehouse", ["All Warehouses", "Central Warehouse", "North Warehouse", "South Warehouse"], label_visibility="collapsed", key="wh_prod")
+        month_sel = st.selectbox("Month", ["All Months"] + [str(m) for m in range(1, 13)], label_visibility="collapsed", key="rec_month_select")
     with f4:
-        status_filter = st.selectbox("Status", ["All Statuses", "In Stock", "Low Stock", "Out of Stock"], label_visibility="collapsed", key="stat_prod")
+        type_sel = st.selectbox("Item Type", ["All Item Types", "WINE", "BEER", "LIQUOR", "STR SUPPLIES", "REF", "DUNNAGE"], label_visibility="collapsed", key="rec_type_select")
     with f5:
-        st.button("Filter", use_container_width=True, key="btn_filter")
+        page_size_options = [10, 25, 50, 100]
+        cur_size_idx = page_size_options.index(st.session_state["rec_page_size"]) if st.session_state["rec_page_size"] in page_size_options else 0
+        page_size_sel = st.selectbox(
+            "Page Size",
+            page_size_options,
+            index=cur_size_idx,
+            label_visibility="collapsed",
+            key="rec_page_size_select"
+        )
+        if page_size_sel != st.session_state["rec_page_size"]:
+            st.session_state["rec_page_size"] = page_size_sel
+            st.session_state["rec_page"] = 1
+            st.rerun()
 
-    demo_products = [
-        {"Product Name": "Wireless Mouse M185", "SKU": "ELEC-001", "Category": "Electronics", "Warehouse": "Central Warehouse", "Available Stock": 420, "Stock Status": "In Stock"},
-        {"Product Name": "Keyboard K380", "SKU": "ELEC-002", "Category": "Electronics", "Warehouse": "Central Warehouse", "Available Stock": 150, "Stock Status": "In Stock"},
-        {"Product Name": "T-Shirt (Blue)", "SKU": "CLTH-001", "Category": "Clothing", "Warehouse": "North Warehouse", "Available Stock": 80, "Stock Status": "Low Stock"},
-        {"Product Name": "Denim Jeans", "SKU": "CLTH-002", "Category": "Clothing", "Warehouse": "North Warehouse", "Available Stock": 0, "Stock Status": "Out of Stock"},
-        {"Product Name": "Shampoo Bottle 300ml", "SKU": "BEAU-001", "Category": "Beauty", "Warehouse": "South Warehouse", "Available Stock": 60, "Stock Status": "Low Stock"},
-        {"Product Name": "Steel Water Bottle", "SKU": "HOME-001", "Category": "Home & Kitchen", "Warehouse": "South Warehouse", "Available Stock": 530, "Stock Status": "In Stock"},
-    ]
+    page_size = st.session_state["rec_page_size"]
+    current_page = st.session_state["rec_page"]
 
-    p_df = pd.DataFrame(demo_products)
+    # 1. Server-side Count Query
+    total_matching = fetch_records_count(
+        search_query=search_q,
+        year_filter=year_sel,
+        month_filter=month_sel,
+        item_type_filter=type_sel
+    )
 
-    if search_query:
-        p_df = p_df[p_df["Product Name"].str.contains(search_query, case=False) | p_df["SKU"].str.contains(search_query, case=False)]
-    if cat_filter != "All Categories":
-        p_df = p_df[p_df["Category"] == cat_filter]
-    if wh_filter != "All Warehouses":
-        p_df = p_df[p_df["Warehouse"] == wh_filter]
-    if status_filter != "All Statuses":
-        p_df = p_df[p_df["Stock Status"] == status_filter]
+    total_pages = max(1, math.ceil(total_matching / page_size))
+    if current_page > total_pages:
+        current_page = total_pages
+        st.session_state["rec_page"] = total_pages
 
-    st.dataframe(p_df, use_container_width=True)
+    # 2. Server-side Page Data Query
+    r_df = fetch_records_page(
+        search_query=search_q,
+        year_filter=year_sel,
+        month_filter=month_sel,
+        item_type_filter=type_sel,
+        page=current_page,
+        page_size=page_size
+    )
 
-    c_bot1, c_bot2 = st.columns([3, 1])
-    with c_bot1:
-        st.caption(f"Showing **1 to {len(p_df)}** of **1,248** entries")
-    with c_bot2:
-        csv = p_df.to_csv(index=False)
-        st.download_button("📥 Export CSV", data=csv, file_name="products.csv", mime="text/csv", use_container_width=True)
+    start_row = ((current_page - 1) * page_size) + 1 if total_matching > 0 else 0
+    end_row = min(current_page * page_size, total_matching)
 
-    st.markdown('</div>', unsafe_allow_html=True)
+    # Render Data Table WITHOUT record_id column & with Production SaaS column headers
+    if not r_df.empty:
+        display_df = r_df.drop(columns=["record_id"], errors="ignore").rename(columns={
+            "year": "Year",
+            "month": "Month",
+            "supplier": "Supplier",
+            "item_code": "Item Code",
+            "item_description": "Description",
+            "item_type": "Item Type",
+            "retail_sales": "Retail Sales ($)",
+            "warehouse_sales": "Warehouse Sales ($)"
+        })
+        st.dataframe(display_df, use_container_width=True)
+    else:
+        st.info("No matching records found for the selected search filters.")
+
+    # Bottom Pagination Bar
+    p_col1, p_col2, p_col3, p_col4 = st.columns([2, 1, 1.2, 1])
+    with p_col1:
+        st.markdown(f"<div style='font-size: 13px; color: #94A3B8; padding-top: 6px;'>Showing <b style='color: #F8FAFC;'>{start_row:,}–{end_row:,}</b> of <b style='color: #F8FAFC;'>{total_matching:,}</b> records</div>", unsafe_allow_html=True)
+    with p_col2:
+        if st.button("← Previous", disabled=(current_page <= 1), use_container_width=True, key="btn_prev_page"):
+            st.session_state["rec_page"] = max(1, current_page - 1)
+            st.rerun()
+    with p_col3:
+        st.markdown(f"<div style='text-align: center; font-weight: 700; color: #F8FAFC; font-size: 13px; padding-top: 6px;'>Page {current_page:,} of {total_pages:,}</div>", unsafe_allow_html=True)
+    with p_col4:
+        if st.button("Next →", disabled=(current_page >= total_pages), use_container_width=True, key="btn_next_page"):
+            st.session_state["rec_page"] = min(total_pages, current_page + 1)
+            st.rerun()
+
+    st.divider()
+
+    # On-demand CSV Export
+    if st.button("📥 Export Current Filtered Results (CSV)", key="btn_export_csv_action"):
+        export_df = fetch_records_page(
+            search_query=search_q,
+            year_filter=year_sel,
+            month_filter=month_sel,
+            item_type_filter=type_sel,
+            page=1,
+            page_size=50000
+        )
+        csv_data = export_df.to_csv(index=False)
+        st.download_button(
+            "Click to Download CSV File",
+            data=csv_data,
+            file_name="records_export.csv",
+            mime="text/csv",
+            key="dl_btn_ready"
+        )
 
 
-def render_add_product():
-    """Add Product Screen."""
-    st.title("Add New Product")
-    st.caption("Register new product item into PostgreSQL database")
+def render_suppliers():
+    """3. Suppliers Page."""
+    st.title("Suppliers")
+    st.caption("Explore supplier activity across your records")
 
-    st.markdown('<div class="saas-card-white">', unsafe_allow_html=True)
-    with st.form("add_product_form_saas"):
-        col1, col2 = st.columns(2)
+    sup_df = fetch_suppliers_summary(limit=50)
+    st.dataframe(sup_df, use_container_width=True)
+
+
+def render_item_types():
+    """4. Item Types Page."""
+    st.title("Item Types")
+    st.caption("Explore item categories and sales distribution")
+
+    cat_df = fetch_item_types_summary()
+    st.dataframe(cat_df, use_container_width=True)
+
+
+def render_add_record():
+    """Add Record Screen with 2-Column Dark SaaS Layout."""
+    st.markdown(
+        '<div>'
+        '<div style="font-size: 10px; font-weight: 800; color: #3B82F6; letter-spacing: 0.8px; text-transform: uppercase; margin-bottom: 4px;">MANAGER / NEW ENTRY</div>'
+        '<h1 style="font-size: 26px; font-weight: 800; color: #F8FAFC; margin: 0 0 4px 0;">Add New Record</h1>'
+        '<p style="font-size: 13px; color: #94A3B8; margin: 0;">Insert a new product record entry into the system.</p>'
+        '</div>',
+        unsafe_allow_html=True
+    )
+    st.write("")
+
+    with st.form("add_record_form_db"):
+        col1, col2 = st.columns(2, gap="large")
         with col1:
-            p_name = st.text_input("Product Name *", placeholder="e.g. Wireless Ergonomic Mouse")
-            sku = st.text_input("SKU Code *", placeholder="e.g. ELEC-009")
-            cat = st.selectbox("Category *", ["Electronics", "Clothing", "Beauty", "Home & Kitchen", "General"])
+            st.markdown('<div style="font-size: 13px; font-weight: 700; color: #3B82F6; margin-bottom: 12px;">📦 ITEM DETAILS</div>', unsafe_allow_html=True)
+            item_code = st.text_input("Item Code *", placeholder="e.g. 100009")
+            item_desc = st.text_input("Item Description *", placeholder="e.g. BOOTLEG RED - 750ML")
+            supplier = st.text_input("Supplier Name *", placeholder="e.g. REPUBLIC NATIONAL DISTRIBUTING CO")
+            item_type = st.selectbox("Item Type *", ["WINE", "BEER", "LIQUOR", "STR SUPPLIES", "REF", "DUNNAGE"])
         with col2:
-            wh = st.selectbox("Assigned Warehouse *", ["Central Warehouse", "North Zone Warehouse", "South Zone Warehouse"])
-            qty = st.number_input("Stock Quantity *", min_value=0, value=100)
-            price = st.number_input("Unit Price ($) *", min_value=0.0, value=45.0)
+            st.markdown('<div style="font-size: 13px; font-weight: 700; color: #34D399; margin-bottom: 12px;">📊 PERIOD & SALES ($)</div>', unsafe_allow_html=True)
+            year = st.number_input("Year *", min_value=2017, max_value=2030, value=2026)
+            month = st.number_input("Month *", min_value=1, max_value=12, value=8)
+            retail_sales = st.number_input("Retail Sales ($)", min_value=0.0, value=150.0)
+            warehouse_sales = st.number_input("Warehouse Sales ($)", min_value=0.0, value=300.0)
 
-        desc = st.text_area("Product Specifications / Description")
-        submitted = st.form_submit_button("+ Save Product to PostgreSQL", use_container_width=True)
+        st.write("")
+        submitted = st.form_submit_button("➕ Save Record Entry", use_container_width=True)
 
         if submitted:
-            if not p_name or not sku:
-                st.error("Please fill in all required fields.")
+            if not item_code or not item_desc or not supplier:
+                st.error("Please fill in all required fields marked with *.")
             else:
-                success = add_product_record(sku, p_name, wh, cat, retail_sales=price, warehouse_sales=qty*price)
+                success = add_product_record(
+                    item_code=item_code,
+                    item_description=item_desc,
+                    supplier=supplier,
+                    item_type=item_type,
+                    retail_sales=retail_sales,
+                    warehouse_sales=warehouse_sales,
+                    year=int(year),
+                    month=int(month)
+                )
                 if success:
-                    st.success(f"✅ Product **{p_name}** ({sku}) saved successfully!")
+                    st.success(f"✅ Record for **{item_desc}** ({item_code}) saved successfully!")
                 else:
-                    st.error("Error saving product to database.")
-    st.markdown('</div>', unsafe_allow_html=True)
+                    st.error("Error saving record.")
 
 
-def render_warehouses():
-    """3. Warehouses Screen."""
-    top1, top2 = st.columns([3, 1])
-    with top1:
-        st.title("3. Warehouses")
-    with top2:
-        st.button("+ Add Warehouse", use_container_width=True, key="btn_add_wh")
-
-    st.markdown('<div class="saas-card-white">', unsafe_allow_html=True)
-    wh_df = pd.DataFrame([
-        {"Warehouse Name": "Central Warehouse", "Location": "New Delhi", "Manager": "Ravi Kumar", "Total Stock": "18,500", "Action": "👁️ View"},
-        {"Warehouse Name": "North Zone Warehouse", "Location": "Delhi", "Manager": "Anita Singh", "Total Stock": "12,350", "Action": "👁️ View"},
-        {"Warehouse Name": "South Zone Warehouse", "Location": "Bangalore", "Manager": "Suresh Babu", "Total Stock": "8,900", "Action": "👁️ View"},
-    ])
-    st.dataframe(wh_df, use_container_width=True)
-    st.markdown('</div>', unsafe_allow_html=True)
-
-
-def render_stock_movements():
-    """4. Stock Movements Screen."""
-    st.title("4. Stock Movements")
-    st.caption("Detailed inward/outward inventory transactions log")
-
-    st.markdown('<div class="saas-card-white">', unsafe_allow_html=True)
-    m_df = pd.DataFrame([
-        {"Date": "20 Jul 2026", "Product": "Wireless Mouse", "Type": "IN", "Warehouse": "Central Warehouse", "Quantity": "+120", "Ref No": "IN-000123"},
-        {"Date": "19 Jul 2026", "Product": "Shampoo Bottle 300ml", "Type": "OUT", "Warehouse": "South Warehouse", "Quantity": "-60", "Ref No": "OUT-000245"},
-        {"Date": "18 Jul 2026", "Product": "T-Shirt (Blue)", "Type": "IN", "Warehouse": "North Warehouse", "Quantity": "+200", "Ref No": "IN-000122"},
-    ])
-    st.dataframe(m_df, use_container_width=True)
-    st.markdown('</div>', unsafe_allow_html=True)
-
-
-def render_reports(df: pd.DataFrame):
-    """5. Reports Screen."""
-    st.title("5. Reports & Analytics")
-    st.caption("Interactive downloadable stock & warehouse reports")
+def render_reports():
+    """5. Reports Page."""
+    st.title("Reports & Analytics")
+    st.caption("Downloadable report datasets for business analytics")
 
     r1, r2 = st.columns(2)
     with r1:
-        st.markdown("""
-        <div class="saas-card-white">
-            <h4>📊 Stock Summary Report</h4>
-            <p style="color: #6b7280; font-size: 13px; margin-top: 6px;">Overview of total stock levels across warehouses and categories.</p>
-        </div>
-        """, unsafe_allow_html=True)
-        st.write("")
-        csv1 = df.to_csv(index=False) if not df.empty else "No Data"
-        st.download_button("📥 Download Stock Summary CSV", data=csv1, file_name="stock_summary.csv", mime="text/csv", use_container_width=True, key="dl_rep1")
+        st.markdown(
+            '<div style="background-color: #101D31; border: 1px solid #1E293B; border-radius: 12px; padding: 16px; margin-bottom: 12px;">'
+            '<h4 style="font-size: 14px; font-weight: 700; color: #F8FAFC; margin-bottom: 4px;">📊 Sales & Records Export</h4>'
+            '<p style="font-size: 11px; color: #94A3B8; margin-bottom: 10px;">Export product and transaction records for system analysis.</p>'
+            '</div>',
+            unsafe_allow_html=True
+        )
+        if st.button("Generate Records Export CSV", key="gen_rep_rec"):
+            df_all = fetch_records_page(page=1, page_size=50000)
+            csv_all = df_all.to_csv(index=False) if not df_all.empty else "No Data"
+            st.download_button("📥 Download Records CSV", data=csv_all, file_name="sales_records_full.csv", mime="text/csv", use_container_width=True, key="dl_rep_records")
 
     with r2:
-        st.markdown("""
-        <div class="saas-card-white">
-            <h4>⚠️ Low Stock Alert Report</h4>
-            <p style="color: #6b7280; font-size: 13px; margin-top: 6px;">Products below reorder threshold needing immediate restocking.</p>
-        </div>
-        """, unsafe_allow_html=True)
-        st.write("")
-        st.download_button("📥 Download Low Stock Report CSV", data=csv1, file_name="low_stock_report.csv", mime="text/csv", use_container_width=True, key="dl_rep2")
-
-
-def render_alerts():
-    """Alerts Screen."""
-    st.title("Stock Alerts & Reorder Triggers")
-    st.markdown('<div class="saas-card-white">', unsafe_allow_html=True)
-    alerts_df = pd.DataFrame([
-        {"Product Name": "Denim Jeans", "SKU": "CLTH-002", "Warehouse": "North Warehouse", "Current Stock": 0, "Status": "Out of Stock", "Priority": "Critical"},
-        {"Product Name": "T-Shirt (Blue)", "SKU": "CLTH-001", "Warehouse": "North Warehouse", "Current Stock": 80, "Status": "Low Stock", "Priority": "High"},
-        {"Product Name": "Shampoo Bottle 300ml", "SKU": "BEAU-001", "Warehouse": "South Warehouse", "Current Stock": 60, "Status": "Low Stock", "Priority": "High"},
-    ])
-    st.dataframe(alerts_df, use_container_width=True)
-    st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown(
+            '<div style="background-color: #101D31; border: 1px solid #1E293B; border-radius: 12px; padding: 16px; margin-bottom: 12px;">'
+            '<h4 style="font-size: 14px; font-weight: 700; color: #F8FAFC; margin-bottom: 4px;">🏬 Supplier Analytics Export</h4>'
+            '<p style="font-size: 11px; color: #94A3B8; margin-bottom: 10px;">Aggregated sales and volume breakdown by supplier.</p>'
+            '</div>',
+            unsafe_allow_html=True
+        )
+        if st.button("Generate Supplier Report CSV", key="gen_rep_sup"):
+            sup_df = fetch_suppliers_summary(limit=50)
+            csv_sup = sup_df.to_csv(index=False) if not sup_df.empty else "No Data"
+            st.download_button("📥 Download Supplier Report CSV", data=csv_sup, file_name="supplier_analytics.csv", mime="text/csv", use_container_width=True, key="dl_rep_supplier")
 
 
 def render_users():
-    """Users Screen."""
+    """Users Screen (displaying system user accounts with Production column formatting)."""
     st.title("Registered System Accounts")
-    st.caption("Live PostgreSQL database user entries from `app_users` table.")
-    st.markdown('<div class="saas-card-white">', unsafe_allow_html=True)
+    st.caption("Registered system user accounts and roles")
+
     u_df = fetch_users_df()
-    st.dataframe(u_df, use_container_width=True)
-    st.markdown('</div>', unsafe_allow_html=True)
-
-
-def render_settings():
-    """Settings Screen."""
-    st.title("Manager Portal Settings")
-    st.markdown('<div class="saas-card-white">', unsafe_allow_html=True)
-    st.write("⚙️ **PostgreSQL System Configuration**")
-    st.success("Database Connection Status: Active & Connected (Supabase PostgreSQL)")
-    st.markdown('</div>', unsafe_allow_html=True)
+    if not u_df.empty:
+        display_users = u_df.rename(columns={
+            "user_id": "User ID",
+            "username": "Username",
+            "full_name": "Full Name",
+            "email": "Email Address",
+            "role": "Account Role",
+            "status": "Account Status",
+            "created_at": "Date Joined"
+        })
+        st.dataframe(display_users, use_container_width=True)
+    else:
+        st.info("No registered users found.")
