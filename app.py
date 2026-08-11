@@ -133,93 +133,42 @@ if page == "📊 Dashboard":
     st.title("1. Manager Dashboard (Summary)")
     st.caption("Real-time view of inventory across all warehouses")
 
-    st.markdown("---")
+Can be run directly via `python app.py` or via `streamlit run app.py`.
+"""
 
-    # 4 KPI Cards Row
-    col1, col2, col3, col4 = st.columns(4)
-    with col1:
-        st.metric(label="Total Products", value="1,248", delta="+4.2% MoM", help="All Warehouses")
-    with col2:
-        st.metric(label="Total Stock", value="45,780", delta="+12.5% MoM", help="All Warehouses")
-    with col3:
-        st.metric(label="Low Stock Products", value="86", delta="Reorder Soon", delta_color="inverse", help="Items needing reorder")
-    with col4:
-        st.metric(label="Out of Stock", value="12", delta="Action Required", delta_color="inverse", help="Critical alert")
+import sys
+import subprocess
+import streamlit as st
 
-    st.write("")
+def main():
+    """Main Streamlit Application Layout & Router."""
+    from src.db import init_db
+    from src.auth import render_auth_page
+    from src.manager import render_manager_portal
+    from src.sender import render_sender_portal
 
-    # 2 Charts Grid
-    chart_col1, chart_col2 = st.columns([2, 1.2])
+    # Initialize Session State
+    if "authenticated" not in st.session_state:
+        st.session_state["authenticated"] = False
+    if "user_role" not in st.session_state:
+        st.session_state["user_role"] = None
+    if "user_name" not in st.session_state:
+        st.session_state["user_name"] = None
+    if "username" not in st.session_state:
+        st.session_state["username"] = None
 
-    with chart_col1:
-        st.subheader("Stock Overview")
-        period = st.selectbox("Select Filter", ["This Year", "This Quarter", "This Month"], key="period_sel")
-        
-        # Stock overview line chart data
-        if period == "This Year":
-            df_trend = pd.DataFrame({
-                "Month": ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug"],
-                "Stock": [28000, 32000, 29000, 37000, 34000, 41000, 43500, 45780]
-            })
-        elif period == "This Quarter":
-            df_trend = pd.DataFrame({
-                "Month": ["May", "Jun", "Jul", "Aug"],
-                "Stock": [34000, 41000, 43500, 45780]
-            })
+    # Ensure PostgreSQL database is initialized
+    init_db()
+
+    # Application Flow: Login -> Dashboard
+    if not st.session_state["authenticated"]:
+        render_auth_page()
+    else:
+        if st.session_state["user_role"] == "manager":
+            render_manager_portal()
         else:
-            df_trend = pd.DataFrame({
-                "Month": ["Week 1", "Week 2", "Week 3", "Week 4"],
-                "Stock": [42000, 43200, 44800, 45780]
-            })
+            render_sender_portal()
 
-        fig_line = px.line(
-            df_trend, x="Month", y="Stock", markers=True,
-            line_shape="spline", title=f"Stock Trend ({period})"
-        )
-
-elif page == "Trends":
-    # Task 3: Visual Hierarchy - Page Title
-    st.title("Trend Analysis")
-
-    # Task 3: Headers, Subheaders, Dividers
-    st.header("Revenue Trends")
-    st.subheader("Monthly Revenue (Last 12 Months)")
-
-    # Task 2: Columns layout for side-by-side comparison
-    trend_col1, trend_col2 = st.columns(2)
-    with trend_col1:
-        st.subheader("Q1 - Q2 Revenue Performance")
-        st.write("Steady upward trajectory driven by new product launches and increased demand.")
-        st.metric("H1 Total Revenue", "$2.8M", "+14.2%")
-    with trend_col2:
-        st.subheader("Q3 - Q4 Projected Growth")
-        st.write("Seasonal uptick anticipated with expanding enterprise partnerships.")
-        st.metric("H2 Projected Revenue", "$3.1M", "+16.8%")
-
-    st.divider()
-
-    st.header("Customer Metrics")
-    st.subheader("Active Customers Over Time")
-
-    cust_col1, cust_col2 = st.columns(2)
-    with cust_col1:
-        st.metric("Monthly Active Users", "2,150", "+8.4%")
-    with cust_col2:
-        st.metric("Customer Acquisition Cost", "$120", "-5.1%", delta_color="inverse")
-
-    st.divider()
-
-    # Task 2: Expander for trend details
-    with st.expander("Trend Analysis Methodology"):
-        st.write(
-            "Monthly revenue trends are compiled at the end of each billing cycle. "
-            "Growth rates compare current period metrics against prior trailing twelve-month averages. "
-            "Projections account for seasonal baseline variance."
-        )
-
-elif page == "Data Explorer":
-    st.title("Data Explorer")
-    st.write("Upload your dataset to explore, clean, and visualize the data automatically.")
 
     # Task 3: Apply @st.cache_data to Data Loading
     @st.cache_data
@@ -364,58 +313,16 @@ if st.session_state["user_role"] == "manager":
         else:
             st.info("Numeric column required for Histogram.")
 
+    if running_in_streamlit:
+        main()
     else:
-        st.info("Upload a CSV or JSON file to begin.")
-
-elif page == "Workflow":
-    st.title("Multi-Step Analysis Workflow")
-    
-    # Task 5: Document Session State Usage
-    # "selected_segment" - stores the user's segment choice from Step 1
-    # so it survives reruns when the user interacts with Step 2 widgets.
-    
-    # "workflow_step" - tracks which step the user has completed.
-    # Prevents Step 2 from displaying before Step 1 is confirmed.
-    
-    # "analysis_result" - caches the computation from Step 2 so
-    # it does not recompute when unrelated widgets are changed.
-
-    # Task 1 & Task 2: Persist Three Values & Safely Initialise
-    if "selected_segment" not in st.session_state:
-        st.session_state["selected_segment"] = "All"
-    if "workflow_step" not in st.session_state:
-        st.session_state["workflow_step"] = 1
-    if "analysis_result" not in st.session_state:
-        st.session_state["analysis_result"] = None
-
-    # Task 4: Implement Session State Reset
-    if st.sidebar.button("Reset Workflow"):
-        for key in ["selected_segment", "workflow_step", "analysis_result"]:
-            if key in st.session_state:
-                del st.session_state[key]
-        st.rerun()
-
-    # Task 3: Build a Multi-Step Workflow
-    # Step 1
-    st.header("Step 1: Select Segment")
-    segment = st.selectbox("Segment", ["All", "Enterprise", "Mid-Market", "SMB"])
-    if st.button("Confirm Segment"):
-        st.session_state["selected_segment"] = segment
-        st.session_state["workflow_step"] = 2
-        st.rerun()
-
-    # Step 2 (only if step 1 complete)
-    if st.session_state["workflow_step"] >= 2:
-        st.header("Step 2: Analysis")
-        chosen = st.session_state["selected_segment"]
-        st.write("Analysing: " + chosen)
-        
-        # Interactive widget to prove session state persistence
-        analysis_type = st.radio("Select Analysis Type", ["Basic", "Deep Dive"])
-        
-        if st.button("Run Analysis"):
-            # Compute and display results for chosen segment
-            st.session_state["analysis_result"] = f"Completed {analysis_type} analysis for {chosen} segment."
-            
-        if st.session_state["analysis_result"]:
-            st.success(st.session_state["analysis_result"])
+        # If executed via `python app.py`, automatically launch Streamlit
+        print("==================================================")
+        print("WareVisor RetailStock Manager Application Starting!")
+        print("Launching Streamlit app.py...")
+        print("==================================================")
+        cmd = [sys.executable, "-m", "streamlit", "run", __file__]
+        try:
+            subprocess.run(cmd)
+        except KeyboardInterrupt:
+            print("\nServer stopped gracefully.")

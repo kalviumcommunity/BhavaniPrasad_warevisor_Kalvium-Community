@@ -1,5 +1,4 @@
 import os
-import sqlite3
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
@@ -52,13 +51,13 @@ def get_trend_indicator(change_pct, metric_name):
 
 @st.cache_data
 def load_kpi_data():
-    if os.path.exists(DB_PATH):
-        conn = sqlite3.connect(DB_PATH)
-        df_monthly = pd.read_sql("SELECT * FROM vw_monthly_kpis ORDER BY month DESC", conn)
-        df_orders = pd.read_sql("SELECT * FROM orders", conn)
-        conn.close()
+    try:
+        from scripts.db_connect import get_engine
+        engine = get_engine()
+        df_monthly = pd.read_sql("SELECT * FROM vw_monthly_kpis ORDER BY month DESC", engine)
+        df_orders = pd.read_sql("SELECT * FROM orders", engine)
         return df_monthly, df_orders
-    else:
+    except Exception:
         # Fallback dataset if DB is not present
         df_monthly = pd.DataFrame([
             {"month": "2026-07", "total_revenue": 504750.04, "active_users": 41, "avg_order_value": 3912.79, "churn_rate": 9.52, "satisfaction_score": 4.4},

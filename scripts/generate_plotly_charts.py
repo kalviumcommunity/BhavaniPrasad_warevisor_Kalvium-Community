@@ -1,16 +1,16 @@
 import os
-import sqlite3
 import pandas as pd
 import plotly.graph_objects as go
+from scripts.db_connect import get_engine
 
 # Ensure output directory exists
 os.makedirs("interactive_charts", exist_ok=True)
-DB_PATH = "database/data_layer.db"
 
 def get_db_connection():
-    if os.path.exists(DB_PATH):
-        return sqlite3.connect(DB_PATH)
-    return None
+    try:
+        return get_engine()
+    except Exception:
+        return None
 
 def build_chart1():
     """Task 1 - Chart 1: Daily Revenue Trend with Custom Hover"""

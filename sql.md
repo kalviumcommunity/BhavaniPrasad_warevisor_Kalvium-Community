@@ -20,18 +20,20 @@ Reports & Alerts
 
 3. Design the database
 
-Use SQLite for the first version of the app. The connection helper and table creation logic live in [scripts/database_setup.py](scripts/database_setup.py).
+Use PostgreSQL for the application database. The connection helper and authentication logic live in [scripts/db_connect.py](scripts/db_connect.py) and schema definitions live in [sql/postgres_schema.sql](sql/postgres_schema.sql).
 
 ```sql
-PRAGMA foreign_keys = ON;
-
-CREATE TABLE IF NOT EXISTS Users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    email TEXT NOT NULL UNIQUE,
-    password TEXT NOT NULL,
-    role TEXT NOT NULL CHECK (role IN ('sender', 'manager'))
+CREATE TABLE IF NOT EXISTS app_users (
+    user_id SERIAL PRIMARY KEY,
+    username VARCHAR(50) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    full_name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    role VARCHAR(20) NOT NULL CHECK (role IN ('manager', 'product_sender')),
+    status VARCHAR(20) NOT NULL DEFAULT 'active',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+```
 
 CREATE TABLE IF NOT EXISTS Products (
     product_id INTEGER PRIMARY KEY AUTOINCREMENT,
