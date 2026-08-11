@@ -7,15 +7,15 @@
   --bg-sidebar: #0f172a;
   --sidebar-hover: #1e293b;
   --sidebar-active: #2563eb;
-  
+
   --text-main: #0f172a;
   --text-muted: #64748b;
   --text-light: #94a3b8;
   --text-white: #ffffff;
-  
+
   --border-color: #e2e8f0;
   --border-radius: 12px;
-  
+
   --color-primary: #3b82f6;
   --color-primary-light: #eff6ff;
   --color-success: #10b981;
@@ -26,11 +26,11 @@
   --color-danger-light: #fef2f2;
   --color-purple: #8b5cf6;
   --color-purple-light: #f5f3ff;
-  
-  --shadow-sm: 0 1px 3px rgba(0,0,0,0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
-  --shadow-lg: 0 10px 25px -5px rgba(15,23,42,0.08), 0 8px 10px -6px rgba(15,23,42,0.04);
-  
+
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  --shadow-lg: 0 10px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.04);
+
   --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -720,7 +720,8 @@ body {
   font-size: 13px;
 }
 
-.modal-table th, .modal-table td {
+.modal-table th,
+.modal-table td {
   padding: 10px 12px;
   text-align: left;
   border-bottom: 1px solid var(--border-color);
@@ -737,9 +738,11 @@ body {
   .kpi-grid {
     grid-template-columns: repeat(2, 1fr);
   }
+
   .charts-grid {
     grid-template-columns: 1fr;
   }
+
   .bottom-grid {
     grid-template-columns: 1fr;
   }
@@ -750,12 +753,18 @@ body {
     width: 70px;
     padding: 16px 8px;
   }
-  .brand-name, .brand-tagline, .nav-item span, .brand-container {
+
+  .brand-name,
+  .brand-tagline,
+  .nav-item span,
+  .brand-container {
     display: none;
   }
+
   .main-wrapper {
     margin-left: 70px;
   }
+
   .kpi-grid {
     grid-template-columns: 1fr;
   }

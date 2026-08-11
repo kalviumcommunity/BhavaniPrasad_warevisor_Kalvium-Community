@@ -230,39 +230,35 @@ def prepare_retail_sales_dataset(
 
 
 def build_schema_sql() -> str:
-    """Return the SQLite schema that matches the cleaned retail sales dataset."""
-    return """PRAGMA foreign_keys = ON;
-
+    """Return the PostgreSQL schema that matches the cleaned retail sales dataset."""
+    return """-- WareVisor PostgreSQL Schema for warehouse_retail_sales
 CREATE TABLE IF NOT EXISTS warehouse_retail_sales (
-    record_id INTEGER PRIMARY KEY AUTOINCREMENT,
-    year INTEGER NOT NULL CHECK (year BETWEEN 2017 AND 2020),
-    month INTEGER NOT NULL CHECK (month BETWEEN 1 AND 12),
-    supplier TEXT NOT NULL,
-    item_code TEXT NOT NULL,
+    record_id BIGSERIAL PRIMARY KEY,
+    year INT NOT NULL CHECK (year BETWEEN 2017 AND 2030),
+    month INT NOT NULL CHECK (month BETWEEN 1 AND 12),
+    supplier VARCHAR(255) NOT NULL,
+    item_code VARCHAR(100) NOT NULL,
     item_description TEXT NOT NULL,
-    item_type TEXT NOT NULL,
-    retail_sales REAL NOT NULL DEFAULT 0,
-    retail_transfers REAL NOT NULL DEFAULT 0,
-    warehouse_sales REAL NOT NULL DEFAULT 0,
-    CHECK (trim(supplier) <> ''),
-    CHECK (trim(item_code) <> ''),
-    CHECK (trim(item_description) <> ''),
-    CHECK (trim(item_type) <> '')
+    item_type VARCHAR(100) NOT NULL,
+    retail_sales NUMERIC(12, 2) NOT NULL DEFAULT 0.00,
+    retail_transfers NUMERIC(12, 2) NOT NULL DEFAULT 0.00,
+    warehouse_sales NUMERIC(12, 2) NOT NULL DEFAULT 0.00,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX IF NOT EXISTS idx_warehouse_retail_sales_year_month
+CREATE INDEX IF NOT EXISTS idx_sales_year_month
     ON warehouse_retail_sales (year, month);
 
-CREATE INDEX IF NOT EXISTS idx_warehouse_retail_sales_supplier
+CREATE INDEX IF NOT EXISTS idx_sales_supplier
     ON warehouse_retail_sales (supplier);
 
-CREATE INDEX IF NOT EXISTS idx_warehouse_retail_sales_item_type
+CREATE INDEX IF NOT EXISTS idx_sales_item_type
     ON warehouse_retail_sales (item_type);
 """
 
 
 def write_schema_file(output_path: str | Path = DEFAULT_SCHEMA_OUTPUT) -> Path:
-    """Persist the SQLite schema to disk."""
+    """Persist the PostgreSQL schema to disk."""
     path = Path(output_path)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(build_schema_sql(), encoding="utf-8")
