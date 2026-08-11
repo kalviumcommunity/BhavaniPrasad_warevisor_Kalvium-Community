@@ -2,6 +2,7 @@ import os
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
+from alert_config import ALERT_THRESHOLDS, check_alerts, display_alerts
 
 # Configure page layout
 st.set_page_config(
@@ -104,6 +105,17 @@ kpis_df['Change_Display'] = kpis_df['Change_Pct'].apply(lambda x: f"{x:+.1f}%" i
 # Streamlit UI
 st.title("🎯 Executive Sales & Performance KPI Dashboard")
 st.caption(f"Comparing current period ({current_row['month']}) against prior period ({prior_row['month']})")
+
+# Calculate metrics for threshold monitoring
+current_metrics = {
+    "churn_rate": float(current_row['churn_rate']) if 'churn_rate' in current_row and not pd.isna(current_row['churn_rate']) else 0.0,
+    "avg_order_value": float(current_row['avg_order_value']) if 'avg_order_value' in current_row and not pd.isna(current_row['avg_order_value']) else 0.0,
+    "null_percentage": 0.0
+}
+
+# Check metrics against configured thresholds and display visual alerts
+alerts = check_alerts(current_metrics, ALERT_THRESHOLDS)
+display_alerts(alerts, st)
 
 st.markdown("### Key Performance Indicators")
 
