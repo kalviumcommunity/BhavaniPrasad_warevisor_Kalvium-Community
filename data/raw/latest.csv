@@ -1,0 +1,6 @@
+order_id,customer_id,amount,segment
+201,CUST10,500.00,Enterprise
+202,CUST11,120.00,Retail
+203,CUST12,300.75,Wholesale
+204,CUST13,75.50,Retail
+205,CUST14,450.00,Enterprise
