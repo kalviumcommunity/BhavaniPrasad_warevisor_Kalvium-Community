@@ -1,143 +1,127 @@
-# BhavaniPrasad_warevisor_Kalvium-Community
+# Sales Analytics Dashboard
 
-## Duplicate Detection and Deduplication
+Interactive analytics dashboard that ingests sales data, computes KPIs, detects threshold breaches, and delivers weekly reports. Built for the operations and sales teams.
 
-The project now includes a reproducible deduplication workflow for handling exact and near-duplicate records.
+## Getting Started
 
-### What is included
-- A Python script at [scripts/deduplicate_data.py](scripts/deduplicate_data.py) that:
-  - detects exact duplicates with pandas `.duplicated()`
-  - detects near-duplicates using business keys such as `customer_id` and `transaction_date`
-  - removes duplicates while keeping the most complete record
-  - writes an audit trail to [output/removed_duplicates_audit.csv](output/removed_duplicates_audit.csv)
-  - writes before/after metrics to [output/dedup_summary.json](output/dedup_summary.json)
+Run these commands to start the application from scratch:
 
-### Generated artifacts
-- Warehouse input: [data/raw/Warehouse_and_Retail_Sales.csv](data/raw/Warehouse_and_Retail_Sales.csv)
-- Cleaned warehouse output: [data/processed/warehouse_retail_sales_cleaned.csv](data/processed/warehouse_retail_sales_cleaned.csv)
-- Audit summary: [output/dedup_audit_summary.json](output/dedup_audit_summary.json)
-
-### Run it
 ```bash
-python scripts/deduplicate_data.py
+git clone https://github.com/kalviumcommunity/BhavaniPrasad_warevisor_Kalvium-Community.git
+cd BhavaniPrasad_warevisor_Kalvium-Community
+python3 -m venv venv && source venv/bin/activate && pip install -r requirements.txt
+streamlit run app.py
 ```
 
-### Verification
-The regression test at [tests/test_deduplicate_data.py](tests/test_deduplicate_data.py) confirms that exact duplicates are removed, near-duplicates are reduced to the best record, and the audit files are produced.
+## Dataset
 
-## String Cleaning and Text Normalisation
+- **Source**: CSV upload or scheduled pipeline ingestion
+- **Columns**: `customer_id`, `order_id`, `amount`, `date`, `segment`
+- **Refresh**: Weekly via GitHub Actions pipeline
 
-The project also includes a reusable string-cleaning pipeline for messy text fields.
+## Setup
 
-### What is included
-- A Python script at [scripts/string_cleaning_pipeline.py](scripts/string_cleaning_pipeline.py) that:
-  - strips whitespace from string columns
-  - normalizes casing to lowercase
-  - removes special characters with regex
-  - standardizes category labels using mapping dictionaries
-  - exposes a reusable helper, [scripts/string_cleaning_pipeline.py](scripts/string_cleaning_pipeline.py), for any text column
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/kalviumcommunity/BhavaniPrasad_warevisor_Kalvium-Community.git
+   cd BhavaniPrasad_warevisor_Kalvium-Community
+   ```
 
-### Generated artifacts
-- Cleaned dataset: [data/processed/cleaned_strings.csv](data/processed/cleaned_strings.csv)
-- Cleaning summary: [output/string_cleaning_summary.json](output/string_cleaning_summary.json)
+2. **Create virtual environment**
+   ```bash
+   python3 -m venv venv
+   source venv/bin/activate  # Windows: venv\Scripts\activate
+   ```
 
-### Run it
-```bash
-python scripts/string_cleaning_pipeline.py
+3. **Install dependencies**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. **Configure environment**
+   ```bash
+   cp .env.example .env
+   # Edit .env with your SMTP credentials
+   ```
+
+5. **Run the app**
+   ```bash
+   streamlit run app.py
+   ```
+
+## Usage
+
+Upload a CSV file or let the pipeline load data automatically. Use sidebar filters to explore. Check KPI cards for status. Review alerts for threshold breaches. Send reports via email.
+
+## Pipeline Architecture
+
+```text
+CSV Upload / Scheduled Ingest
+        |
+    Ingestion: Load raw CSV, validate file format
+        |
+    Cleaning: Drop nulls, cast types, filter invalid rows
+        |
+    Aggregation: Group by segment, compute revenue and order count
+        |
+    Output: Write cleaned.csv and aggregated.csv to output/
+        |
+    Dashboard: Load processed data, compute KPIs, render charts
+        |
+    Alerts: Check metrics against thresholds, display warnings
+        |
+    Reports: Generate summary, send via email
 ```
 
-### Verification
-The regression test at [tests/test_string_cleaning_pipeline.py](tests/test_string_cleaning_pipeline.py) confirms that whitespace is stripped, casing is normalized, special characters are removed, and categories are standardized consistently.
+## Derived Features
 
-## Merge Validation and Join Auditing
+| Column | Type | Description | Example |
+| --- | --- | --- | --- |
+| revenue_30d | float | Sum of order amounts last 30 days | 4523.50 |
+| days_since_order | integer | Days since most recent order | 12 |
+| churn_risk | string | Risk category based on activity | "high" |
+| null_pct | float | Percentage of null values per column | 2.3 |
 
-The project also includes a merge-validation workflow for joining customer and order data safely and transparently.
+## Known Limitations
 
-### What is included
-- A Python script at [scripts/merge_validation.py](scripts/merge_validation.py) that:
-  - performs explicit merges with a chosen join type
-  - validates row counts before and after the join
-  - detects unmatched keys on both sides of the merge
-  - writes unmatched-key files and a join report for auditability
+- Data refreshes weekly. Dashboard does not show real-time data.
+- Revenue excludes refunded orders.
+- Segment classification based on self-reported category field.
+- Alert thresholds are static (no seasonal adjustment).
+- Email delivery requires SMTP configuration in `.env` file.
+- Pipeline assumes CSV with specific column names.
 
-### Generated artifacts
-- Merged dataset: [data/processed/merged_customers_orders.csv](data/processed/merged_customers_orders.csv)
-- Unmatched customers: [output/unmatched_customers.csv](output/unmatched_customers.csv)
-- Unmatched orders: [output/unmatched_orders.csv](output/unmatched_orders.csv)
-- Join report: [output/join_validation_report.json](output/join_validation_report.json)
+---
 
-### Run it
-```bash
-python scripts/merge_validation.py
-```
+## Data Quality & Processing Workflows
 
-### Verification
-The regression test at [tests/test_merge_validation.py](tests/test_merge_validation.py) confirms that left joins preserve customer rows, unmatched keys are detected, and join-type comparisons are reported correctly.
+### Duplicate Detection and Deduplication
+- Script: `scripts/deduplicate_data.py`
+- Run: `python scripts/deduplicate_data.py`
+- Detects exact and near-duplicates using business keys (`customer_id`, `transaction_date`).
+- Audit trail written to `output/removed_duplicates_audit.csv`.
 
-## Feature Engineering for Business Meaning
+### String Cleaning and Text Normalisation
+- Script: `scripts/string_cleaning_pipeline.py`
+- Run: `python scripts/string_cleaning_pipeline.py`
+- Strips whitespace, normalizes casing, and standardizes categories.
 
-The project now includes a reusable feature-engineering workflow for turning raw customer metrics into interpretable business signals.
+### Merge Validation and Join Auditing
+- Script: `scripts/merge_validation.py`
+- Run: `python scripts/merge_validation.py`
+- Validates row counts and unmatched keys when joining customer and order datasets.
 
-### What is included
-- A reusable module at [scripts/feature_engineering.py](scripts/feature_engineering.py) that:
-  - creates ratio features such as transactions per month, average spend per transaction, and lifetime value per month
-  - bins engagement into low/medium/high tiers with `pd.cut`
-  - creates quartile-based spend tiers with `pd.qcut`
-  - builds an RFM-style composite score from recency, frequency, and monetary components
-  - validates the engineered columns for sensible ranges and missingness
+### Feature Engineering for Business Meaning
+- Script: `scripts/feature_engineering.py`
+- Run: `python scripts/feature_engineering.py`
+- Generates transaction rates, spend tiers, and RFM scores.
 
-### Run it
-```bash
-python scripts/feature_engineering.py
-```
+### Correlation & Relationship Analysis
+- Script: `scripts/correlation_analysis.py`
+- Run: `python scripts/correlation_analysis.py`
+- Computes Pearson and Spearman correlations and exports heatmap to `output/correlation_heatmap.png`.
 
-### Verification
-The regression test at [tests/test_feature_engineering.py](tests/test_feature_engineering.py) confirms that the engineered features are created and that the validation summaries are populated correctly.
-
-## Correlation & Relationship Analysis
-
-The project includes a correlation analysis workflow for churn prediction and feature selection.
-
-### What is included
-- A module at [scripts/correlation_analysis.py](scripts/correlation_analysis.py) that:
-  - generates synthetic churn data with a latent confounder to illustrate correlation vs causation
-  - computes Pearson and Spearman correlations for all numeric features
-  - visualizes relationships with a saved heatmap at [output/correlation_heatmap.png](output/correlation_heatmap.png)
-  - identifies strongly correlated feature pairs and highlights redundant predictors
-  - shows how strong support ticket / churn correlation can be a symptom of customer pain rather than a root cause
-
-### Run it
-```bash
-python scripts/correlation_analysis.py
-```
-
-### Verification
-The regression test at [tests/test_correlation_analysis.py](tests/test_correlation_analysis.py) confirms correlation calculations, heatmap generation, strong pair detection, and feature selection behavior.
-
-## SQL Joins & Multi-Table Analysis
-
-The project includes a multi-table relational join and validation workflow for auditability across relational schemas.
-
-### What is included
-- **Database setup script**: [scripts/setup_joins_db.py](scripts/setup_joins_db.py) populates SQLite database `data/joins_analysis.db` with 1,000 customers, 5,000 orders, 8,000 order items, and 500 products (including inactive customers and orphaned orders).
-- **SQL Query Suite**:
-  - [sql/01_left_join_validation.sql](sql/01_left_join_validation.sql): LEFT JOIN with customer order aggregates.
-  - [sql/02_detect_unmatched_keys.sql](sql/02_detect_unmatched_keys.sql): Unmatched key detection for inactive customers and orphaned orders.
-  - [sql/03_compare_join_types.sql](sql/03_compare_join_types.sql): INNER, LEFT, and FULL OUTER join side-by-side comparison.
-  - [sql/04_multi_table_join.sql](sql/04_multi_table_join.sql): 4-table join (`customers`, `orders`, `order_items`, `products`).
-  - [sql/05_join_documentation.sql](sql/05_join_documentation.sql): Formal join strategy documentation.
-- **Join Guide**: Detailed tutorial and documentation at [sql/SQL_JOINS_GUIDE.md](sql/SQL_JOINS_GUIDE.md).
-- **Python Automation**: [sql/sql_joins_demo.py](sql/sql_joins_demo.py) executes all 5 tasks with Pandas and SQLite, evaluating join multiplicity and relationship invariants.
-
-### Run it
-```bash
-python scripts/setup_joins_db.py
-python sql/sql_joins_demo.py
-```
-
-### Verification
-The unit test suite at [tests/test_sql_joins.py](tests/test_sql_joins.py) validates join row counts, unmatched key detection, join type assertions (`INNER` <= `LEFT` <= `FULL`), line-item revenue lineage, and strategy documentation.
-```bash
-python -m pytest tests/test_sql_joins.py
-```
-
+### SQL Joins & Multi-Table Analysis
+- Database setup: `python scripts/setup_joins_db.py`
+- Execution: `python sql/sql_joins_demo.py`
+- Multi-table relational joins across SQLite tables (`customers`, `orders`, `order_items`, `products`).
