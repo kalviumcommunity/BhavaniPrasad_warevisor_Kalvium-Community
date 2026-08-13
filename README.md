@@ -41,7 +41,7 @@ streamlit run app.py
 4. **Configure environment**
    ```bash
    cp .env.example .env
-   # Edit .env with your SMTP credentials
+   # Edit .env with your SMTP & Supabase PostgreSQL credentials
    ```
 
 5. **Run the app**
@@ -53,25 +53,138 @@ streamlit run app.py
 
 Upload a CSV file or let the pipeline load data automatically. Use sidebar filters to explore. Check KPI cards for status. Review alerts for threshold breaches. Send reports via email.
 
-## Pipeline Architecture
+---
+
+## Pipeline & System Architecture
+
+### Data & Application Flow
+
+```text
+Product Sender
+      │
+      ▼
+Add Product ────► Submit Product Details
+                         │
+                         ▼
+CSV Ingestion ────► PostgreSQL Database (Supabase)
+                         │
+                         ▼
+Cleaning & Aggregation ──► Manager Dashboard
+                         │
+                         ▼
+               Inventory Analysis & Alerts ──► Weekly Reports & Email Delivery
+```
+
+### Detailed Pipeline Stages
 
 ```text
 CSV Upload / Scheduled Ingest
-        |
+        │
     Ingestion: Load raw CSV, validate file format
-        |
+        │
     Cleaning: Drop nulls, cast types, filter invalid rows
-        |
+        │
     Aggregation: Group by segment, compute revenue and order count
-        |
-    Output: Write cleaned.csv and aggregated.csv to output/
-        |
+        │
+    Output: Write cleaned.csv and aggregated.csv to data/processed/
+        │
     Dashboard: Load processed data, compute KPIs, render charts
-        |
+        │
     Alerts: Check metrics against thresholds, display warnings
-        |
+        │
     Reports: Generate summary, send via email
 ```
+
+---
+
+## Database Architecture & Design (PostgreSQL Only)
+
+PostgreSQL (Supabase / SQLAlchemy) powers the application database layer. The connection pool helper lives in [scripts/db_connect.py](scripts/db_connect.py) and schema definitions live in [sql/postgres_schema.sql](sql/postgres_schema.sql).
+
+```sql
+-- Application Users Table (Exclusively using app_users schema)
+CREATE TABLE IF NOT EXISTS app_users (
+    user_id SERIAL PRIMARY KEY,
+    username VARCHAR(50) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    full_name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    role VARCHAR(20) NOT NULL CHECK (role IN ('manager', 'product_sender')),
+    status VARCHAR(20) NOT NULL DEFAULT 'active',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Products Table referencing app_users
+CREATE TABLE IF NOT EXISTS products (
+    product_id BIGSERIAL PRIMARY KEY,
+    product_name VARCHAR(255) NOT NULL,
+    category VARCHAR(100),
+    sku VARCHAR(100) NOT NULL UNIQUE,
+    sender_id INTEGER NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (sender_id) REFERENCES app_users (user_id) ON DELETE CASCADE
+);
+
+-- Inventory Table referencing products
+CREATE TABLE IF NOT EXISTS inventory (
+    inventory_id BIGSERIAL PRIMARY KEY,
+    product_id BIGINT NOT NULL,
+    warehouse VARCHAR(100) NOT NULL,
+    quantity INTEGER NOT NULL DEFAULT 0 CHECK (quantity >= 0),
+    status VARCHAR(50) NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (product_id) REFERENCES products (product_id) ON DELETE CASCADE
+);
+
+-- Shipments Table referencing app_users and products
+CREATE TABLE IF NOT EXISTS shipments (
+    shipment_id BIGSERIAL PRIMARY KEY,
+    sender_id INTEGER NOT NULL,
+    product_id BIGINT NOT NULL,
+    quantity INTEGER NOT NULL CHECK (quantity > 0),
+    shipment_date TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (sender_id) REFERENCES app_users (user_id) ON DELETE CASCADE,
+    FOREIGN KEY (product_id) REFERENCES products (product_id) ON DELETE CASCADE
+);
+
+-- Returns Table referencing products
+CREATE TABLE IF NOT EXISTS returns (
+    return_id BIGSERIAL PRIMARY KEY,
+    product_id BIGINT NOT NULL,
+    quantity INTEGER NOT NULL CHECK (quantity > 0),
+    reason TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (product_id) REFERENCES products (product_id) ON DELETE CASCADE
+);
+```
+
+---
+
+## Data Processing Workflow
+
+### Executing the Data Workflow Script
+
+Run the automated data workflow from the repository root:
+
+```bash
+python scripts/data_workflow.py
+```
+
+This ingests the raw sales dataset, processes and standardizes the records, and writes cleaned output to `data/processed/warehouse_retail_sales_cleaned.csv`.
+
+### Core Workflow Functions
+
+- **`ingest_data(filepath)`**: Reads source CSV files into a pandas DataFrame and validates structure.
+- **`process_data(df)`**: Removes exact and near-duplicates, fills missing numeric values, standardizes casing/strings, and flags high-value transactions.
+- **`output_results(df, output_path)`**: Exports the processed DataFrame to disk and prints an execution audit summary.
+
+### Adapting for New Datasets
+
+1. Update the input path constants at the top of `scripts/data_workflow.py`.
+2. Ensure the target file includes required schema columns or adjust transformation logic.
+3. Re-run `python scripts/data_workflow.py` to produce a updated clean dataset.
+
+---
 
 ## Derived Features
 
@@ -82,46 +195,43 @@ CSV Upload / Scheduled Ingest
 | churn_risk | string | Risk category based on activity | "high" |
 | null_pct | float | Percentage of null values per column | 2.3 |
 
-## Known Limitations
-
-- Data refreshes weekly. Dashboard does not show real-time data.
-- Revenue excludes refunded orders.
-- Segment classification based on self-reported category field.
-- Alert thresholds are static (no seasonal adjustment).
-- Email delivery requires SMTP configuration in `.env` file.
-- Pipeline assumes CSV with specific column names.
-
 ---
 
 ## Data Quality & Processing Workflows
 
 ### Duplicate Detection and Deduplication
-- Script: `scripts/deduplicate_data.py`
-- Run: `python scripts/deduplicate_data.py`
+- **Script**: `scripts/deduplicate_data.py`
+- **Run**: `python scripts/deduplicate_data.py`
 - Detects exact and near-duplicates using business keys (`customer_id`, `transaction_date`).
-- Audit trail written to `output/removed_duplicates_audit.csv`.
+- Writes audit log to `output/removed_duplicates_audit.csv`.
 
-### String Cleaning and Text Normalisation
-- Script: `scripts/string_cleaning_pipeline.py`
-- Run: `python scripts/string_cleaning_pipeline.py`
-- Strips whitespace, normalizes casing, and standardizes categories.
+### String Cleaning and Text Normalization
+- **Script**: `scripts/string_cleaning_pipeline.py`
+- **Run**: `python scripts/string_cleaning_pipeline.py`
+- Strips whitespace, normalizes casing, and standardizes text categories.
 
 ### Merge Validation and Join Auditing
-- Script: `scripts/merge_validation.py`
-- Run: `python scripts/merge_validation.py`
-- Validates row counts and unmatched keys when joining customer and order datasets.
+- **Script**: `scripts/merge_validation.py`
+- **Run**: `python scripts/merge_validation.py`
+- Audits row counts and unmatched keys when merging customer and order datasets.
 
 ### Feature Engineering for Business Meaning
-- Script: `scripts/feature_engineering.py`
-- Run: `python scripts/feature_engineering.py`
+- **Script**: `scripts/feature_engineering.py`
+- **Run**: `python scripts/feature_engineering.py`
 - Generates transaction rates, spend tiers, and RFM scores.
 
 ### Correlation & Relationship Analysis
-- Script: `scripts/correlation_analysis.py`
-- Run: `python scripts/correlation_analysis.py`
+- **Script**: `scripts/correlation_analysis.py`
+- **Run**: `python scripts/correlation_analysis.py`
 - Computes Pearson and Spearman correlations and exports heatmap to `output/correlation_heatmap.png`.
 
-### SQL Joins & Multi-Table Analysis
-- Database setup: `python scripts/setup_joins_db.py`
-- Execution: `python sql/sql_joins_demo.py`
-- Multi-table relational joins across SQLite tables (`customers`, `orders`, `order_items`, `products`).
+---
+
+## Known Limitations
+
+- Data refreshes weekly. Dashboard does not show real-time streaming data.
+- Revenue metrics exclude refunded orders.
+- Segment classification is based on self-reported category fields.
+- Alert thresholds are static (no dynamic seasonal adjustments).
+- Email delivery requires valid SMTP configuration in `.env`.
+- Pipeline assumes CSVs match expected schema column names.

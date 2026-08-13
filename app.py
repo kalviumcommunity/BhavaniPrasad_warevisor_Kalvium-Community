@@ -1,8 +1,19 @@
-"""WareVisor - Enterprise Warehouse & Retail Management Portal."""
-
+import os
 import sys
 import subprocess
+
+os.environ["STREAMLIT_SERVER_FILE_WATCHER_TYPE"] = "none"
+os.environ["ARROW_DEFAULT_MEMORY_POOL"] = "system"
+os.environ["PYARROW_ALLOCATOR"] = "system"
+
+try:
+    import pyarrow as pa
+    pa.set_memory_pool(pa.system_memory_pool())
+except Exception:
+    pass
+
 import streamlit as st
+
 
 
 def main():

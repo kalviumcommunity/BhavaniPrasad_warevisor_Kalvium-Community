@@ -9,8 +9,8 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import streamlit as st
 
-from alert_config import ALERT_THRESHOLDS, check_alerts, display_alerts
-from export_utils import export_analysis
+from scripts.alert_config import ALERT_THRESHOLDS, check_alerts, display_alerts
+from scripts.export_utils import export_analysis
 from scripts.warehouse_retail_pipeline import (
     DEFAULT_CLEANED_OUTPUT,
     DEFAULT_REPORT_OUTPUT,

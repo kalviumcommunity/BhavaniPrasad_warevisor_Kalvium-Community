@@ -5,9 +5,9 @@ from datetime import datetime
 import sys
 import os
 
-# Ensure the parent directory is in the sys.path so we can import export_utils
+# Ensure the parent directory is in sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from export_utils import export_analysis
+from scripts.export_utils import export_analysis
 
 def run_analysis():
     # Mock generating the analysis DataFrame

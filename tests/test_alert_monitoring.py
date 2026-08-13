@@ -4,7 +4,7 @@ Tests alert threshold configurations, metric checking logic, severity levels, an
 """
 
 import pytest
-from alert_config import ALERT_THRESHOLDS, check_alerts, display_alerts
+from scripts.alert_config import ALERT_THRESHOLDS, check_alerts, display_alerts
 
 
 def test_alert_thresholds_configuration_structure():

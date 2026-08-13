@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 import pandas as pd
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import Engine
+from sqlalchemy.pool import NullPool
 
 # Load environment variables
 ENV_PATH = Path(__file__).resolve().parents[1] / ".env"
@@ -41,9 +42,9 @@ def get_db_url(password: Optional[str] = None) -> str:
 
 
 def get_engine(password: Optional[str] = None) -> Engine:
-    """Get SQLAlchemy Engine for Supabase PostgreSQL."""
+    """Get SQLAlchemy Engine for Supabase PostgreSQL with thread-safe NullPool."""
     db_url = get_db_url(password)
-    return create_engine(db_url, pool_pre_ping=True)
+    return create_engine(db_url, pool_pre_ping=True, poolclass=NullPool)
 
 
 def test_connection(password: Optional[str] = None) -> bool:

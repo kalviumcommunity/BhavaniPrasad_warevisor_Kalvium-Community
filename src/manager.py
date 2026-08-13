@@ -17,6 +17,8 @@ from src.db import (
     add_product_record
 )
 from src.theme import apply_theme
+from src.kpi_dashboard import render_executive_kpi_dashboard
+
 
 
 def render_manager_portal():
@@ -47,6 +49,7 @@ def render_manager_portal():
     st.sidebar.markdown('<div class="nav-section-title">MAIN</div>', unsafe_allow_html=True)
     main_items = [
         ("Dashboard", "📊  Dashboard"),
+        ("Executive KPIs", "🎯  Executive KPIs"),
         ("Records", "📦  Records"),
         ("Suppliers", "🏬  Suppliers"),
         ("Item Types", "🏷️  Item Types"),
@@ -105,6 +108,8 @@ def render_manager_portal():
     # Router
     if current_page == "Dashboard":
         render_dashboard()
+    elif current_page == "Executive KPIs":
+        render_executive_kpi_dashboard()
     elif current_page == "Records":
         render_records()
     elif current_page == "Suppliers":
